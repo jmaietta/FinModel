@@ -133,14 +133,14 @@
             const downloadLink = document.getElementById('download-link');
             const newSearchBtn = document.getElementById('new-search');
             
-            <script>
+<script>
 document.addEventListener('DOMContentLoaded', function() {
-  const tickerForm      = document.getElementById('ticker-form');
-  const loadingSection  = document.getElementById('loading-section');
-  const resultSection   = document.getElementById('result-section');
-  const resultCompany   = document.getElementById('result-company');
-  const downloadLink    = document.getElementById('download-link');
-  const newSearchBtn    = document.getElementById('new-search');
+  const tickerForm     = document.getElementById('ticker-form');
+  const loadingSection = document.getElementById('loading-section');
+  const resultSection  = document.getElementById('result-section');
+  const resultCompany  = document.getElementById('result-company');
+  const downloadLink   = document.getElementById('download-link');
+  const newSearchBtn   = document.getElementById('new-search');
 
   tickerForm.addEventListener('submit', function(e) {
     e.preventDefault();
@@ -151,7 +151,7 @@ document.addEventListener('DOMContentLoaded', function() {
     loadingSection.style.display = 'block';
     resultSection.style.display  = 'none';
 
-    // ❗️ REAL API CALL
+    // Call the real API
     fetch('/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -161,9 +161,9 @@ document.addEventListener('DOMContentLoaded', function() {
     .then(data => {
       loadingSection.style.display = 'none';
       if (data.success) {
-        resultCompany.textContent = `${ticker} Income Statement`;
-        downloadLink.href        = data.download_url;
-        resultSection.style.display = 'block';
+        resultCompany.textContent      = `${ticker} Income Statement`;
+        downloadLink.href             = data.download_url;
+        resultSection.style.display   = 'block';
       } else {
         alert('Error: ' + (data.error || 'Failed to generate report'));
       }
@@ -175,12 +175,11 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   newSearchBtn.addEventListener('click', function() {
-    resultSection.style.display   = 'none';
+    resultSection.style.display = 'none';
     document.getElementById('ticker').value = '';
   });
 });
 </script>
-
             
             newSearchBtn.addEventListener('click', function() {
                 resultSection.style.display = 'none';
