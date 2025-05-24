@@ -61,20 +61,27 @@ class ProviderSelector:
             self.logger.info(f"Fetching {period} income statement for {ticker} via Polygon")
             
             # Use existing Polygon adapter
-            periods_data = self.polygon_adapter.get_income_statement(ticker, period, limit)
+            periods_list = self.polygon_adapter.get_income_statement(ticker, period, limit)
             
-            if not periods_data:
+            if not periods_list:
                 raise RuntimeError(f"No income statement data returned for {ticker}")
             
-            # Transform to expected format with 'periods' key
+            # Transform list to dictionary format that Excel generator expects
+            # Convert list of period data to dictionary with period dates as keys
+            periods_dict = {}
+            for period_data in periods_list:
+                period_key = period_data.get('period_end_date', f'period_{len(periods_dict)}')
+                periods_dict[period_key] = period_data
+            
+            # Return in expected format
             return {
                 'ticker': ticker,
                 'provider': 'polygon',
-                'periods': periods_data,
+                'periods': periods_dict,  # Now a dictionary instead of list
                 'metadata': {
                     'period_type': period,
                     'limit': limit,
-                    'total_results': len(periods_data)
+                    'total_results': len(periods_dict)
                 }
             }
             
@@ -106,19 +113,25 @@ class ProviderSelector:
         try:
             self.logger.info(f"Fetching {period} balance sheet for {ticker} via Polygon")
             
-            periods_data = self.polygon_adapter.get_balance_sheet(ticker, period, limit)
+            periods_list = self.polygon_adapter.get_balance_sheet(ticker, period, limit)
             
-            if not periods_data:
+            if not periods_list:
                 raise RuntimeError(f"No balance sheet data returned for {ticker}")
+            
+            # Transform list to dictionary format
+            periods_dict = {}
+            for period_data in periods_list:
+                period_key = period_data.get('period_end_date', f'period_{len(periods_dict)}')
+                periods_dict[period_key] = period_data
             
             return {
                 'ticker': ticker,
                 'provider': 'polygon',
-                'periods': periods_data,
+                'periods': periods_dict,  # Dictionary format
                 'metadata': {
                     'period_type': period,
                     'limit': limit,
-                    'total_results': len(periods_data)
+                    'total_results': len(periods_dict)
                 }
             }
             
@@ -150,19 +163,25 @@ class ProviderSelector:
         try:
             self.logger.info(f"Fetching {period} cash flow for {ticker} via Polygon")
             
-            periods_data = self.polygon_adapter.get_cash_flow(ticker, period, limit)
+            periods_list = self.polygon_adapter.get_cash_flow(ticker, period, limit)
             
-            if not periods_data:
+            if not periods_list:
                 raise RuntimeError(f"No cash flow data returned for {ticker}")
+            
+            # Transform list to dictionary format
+            periods_dict = {}
+            for period_data in periods_list:
+                period_key = period_data.get('period_end_date', f'period_{len(periods_dict)}')
+                periods_dict[period_key] = period_data
             
             return {
                 'ticker': ticker,
                 'provider': 'polygon',
-                'periods': periods_data,
+                'periods': periods_dict,  # Dictionary format
                 'metadata': {
                     'period_type': period,
                     'limit': limit,
-                    'total_results': len(periods_data)
+                    'total_results': len(periods_dict)
                 }
             }
             
