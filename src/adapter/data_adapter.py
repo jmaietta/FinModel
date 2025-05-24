@@ -2,7 +2,7 @@
 Provider selection module now using only PolygonAdapter.
 """
 import logging
-from src.adapter.data_adapter import PolygonAdapter
+#from src.adapter.data_adapter import PolygonAdapter
 
 class ProviderSelector:
     """Provider selector simplified to use only Polygon."""
