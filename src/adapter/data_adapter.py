@@ -1,4 +1,3 @@
-```python
 """
 Data adapter module using only Polygon's Financials API for income statements.
 """
@@ -86,4 +85,3 @@ class PolygonAdapter(DataAdapter):
         except Exception as e:
             self.logger.error(f"Polygon income statement fetch failed for {ticker}: {e}")
             return {}
-```
