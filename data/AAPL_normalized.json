@@ -1,0 +1,303 @@
+{
+  "ticker": "AAPL",
+  "company_name": "Apple Inc.",
+  "periods": {
+    "2023-09-30": {
+      "period_end_date": "2023-09-30",
+      "period_type": "quarterly",
+      "currency": "USD",
+      "items": {
+        "Revenues": {
+          "value": 89498000000,
+          "unit": "USD"
+        },
+        "CostOfRevenue": {
+          "value": 50428000000,
+          "unit": "USD"
+        },
+        "GrossProfit": {
+          "value": 39070000000,
+          "unit": "USD"
+        },
+        "OperatingExpenses": {
+          "value": 13534000000,
+          "unit": "USD"
+        },
+        "OperatingIncomeLoss": {
+          "value": 25536000000,
+          "unit": "USD"
+        },
+        "NetIncomeLoss": {
+          "value": 22956000000,
+          "unit": "USD"
+        },
+        "EarningsPerShareBasic": {
+          "value": 1.47,
+          "unit": "USD/share"
+        },
+        "EarningsPerShareDiluted": {
+          "value": 1.46,
+          "unit": "USD/share"
+        }
+      }
+    },
+    "2023-06-30": {
+      "period_end_date": "2023-06-30",
+      "period_type": "quarterly",
+      "currency": "USD",
+      "items": {
+        "Revenues": {
+          "value": 81797000000,
+          "unit": "USD"
+        },
+        "CostOfRevenue": {
+          "value": 45407000000,
+          "unit": "USD"
+        },
+        "GrossProfit": {
+          "value": 36390000000,
+          "unit": "USD"
+        },
+        "OperatingExpenses": {
+          "value": 13458000000,
+          "unit": "USD"
+        },
+        "OperatingIncomeLoss": {
+          "value": 22932000000,
+          "unit": "USD"
+        },
+        "NetIncomeLoss": {
+          "value": 19881000000,
+          "unit": "USD"
+        },
+        "EarningsPerShareBasic": {
+          "value": 1.27,
+          "unit": "USD/share"
+        },
+        "EarningsPerShareDiluted": {
+          "value": 1.26,
+          "unit": "USD/share"
+        }
+      }
+    },
+    "2023-03-31": {
+      "period_end_date": "2023-03-31",
+      "period_type": "quarterly",
+      "currency": "USD",
+      "items": {
+        "Revenues": {
+          "value": 94836000000,
+          "unit": "USD"
+        },
+        "CostOfRevenue": {
+          "value": 53315000000,
+          "unit": "USD"
+        },
+        "GrossProfit": {
+          "value": 41521000000,
+          "unit": "USD"
+        },
+        "OperatingExpenses": {
+          "value": 13548000000,
+          "unit": "USD"
+        },
+        "OperatingIncomeLoss": {
+          "value": 27973000000,
+          "unit": "USD"
+        },
+        "NetIncomeLoss": {
+          "value": 24160000000,
+          "unit": "USD"
+        },
+        "EarningsPerShareBasic": {
+          "value": 1.53,
+          "unit": "USD/share"
+        },
+        "EarningsPerShareDiluted": {
+          "value": 1.52,
+          "unit": "USD/share"
+        }
+      }
+    },
+    "2022-12-31": {
+      "period_end_date": "2022-12-31",
+      "period_type": "quarterly",
+      "currency": "USD",
+      "items": {
+        "Revenues": {
+          "value": 117154000000,
+          "unit": "USD"
+        },
+        "CostOfRevenue": {
+          "value": 69702000000,
+          "unit": "USD"
+        },
+        "GrossProfit": {
+          "value": 47452000000,
+          "unit": "USD"
+        },
+        "OperatingExpenses": {
+          "value": 14112000000,
+          "unit": "USD"
+        },
+        "OperatingIncomeLoss": {
+          "value": 33340000000,
+          "unit": "USD"
+        },
+        "NetIncomeLoss": {
+          "value": 29998000000,
+          "unit": "USD"
+        },
+        "EarningsPerShareBasic": {
+          "value": 1.89,
+          "unit": "USD/share"
+        },
+        "EarningsPerShareDiluted": {
+          "value": 1.88,
+          "unit": "USD/share"
+        }
+      }
+    },
+    "2022-09-30": {
+      "period_end_date": "2022-09-30",
+      "period_type": "quarterly",
+      "currency": "USD",
+      "items": {
+        "Revenues": {
+          "value": 90146000000,
+          "unit": "USD"
+        },
+        "CostOfRevenue": {
+          "value": 52051000000,
+          "unit": "USD"
+        },
+        "GrossProfit": {
+          "value": 38095000000,
+          "unit": "USD"
+        },
+        "OperatingExpenses": {
+          "value": 12809000000,
+          "unit": "USD"
+        },
+        "OperatingIncomeLoss": {
+          "value": 25286000000,
+          "unit": "USD"
+        },
+        "NetIncomeLoss": {
+          "value": 20721000000,
+          "unit": "USD"
+        },
+        "EarningsPerShareBasic": {
+          "value": 1.29,
+          "unit": "USD/share"
+        },
+        "EarningsPerShareDiluted": {
+          "value": 1.29,
+          "unit": "USD/share"
+        }
+      }
+    }
+  },
+  "metrics": {
+    "revenue_growth": [
+      {
+        "current_period": "2022-12-31",
+        "previous_period": "2022-09-30",
+        "growth_rate": 29.960286646107427,
+        "unit": "%"
+      },
+      {
+        "current_period": "2023-03-31",
+        "previous_period": "2022-12-31",
+        "growth_rate": -19.05013913310685,
+        "unit": "%"
+      },
+      {
+        "current_period": "2023-06-30",
+        "previous_period": "2023-03-31",
+        "growth_rate": -13.74899827069889,
+        "unit": "%"
+      },
+      {
+        "current_period": "2023-09-30",
+        "previous_period": "2023-06-30",
+        "growth_rate": 9.41477071286233,
+        "unit": "%"
+      }
+    ],
+    "profit_margins": [
+      {
+        "period": "2023-09-30",
+        "margins": {
+          "gross_margin": 43.654606806856016,
+          "operating_margin": 28.532481172763635,
+          "net_margin": 25.649735189613175
+        },
+        "unit": "%"
+      },
+      {
+        "period": "2023-06-30",
+        "margins": {
+          "gross_margin": 44.48818416323337,
+          "operating_margin": 28.03525801679768,
+          "net_margin": 24.305292370135824
+        },
+        "unit": "%"
+      },
+      {
+        "period": "2023-03-31",
+        "margins": {
+          "gross_margin": 43.78189716985111,
+          "operating_margin": 29.49618288413682,
+          "net_margin": 25.475557805052933
+        },
+        "unit": "%"
+      },
+      {
+        "period": "2022-12-31",
+        "margins": {
+          "gross_margin": 40.503952063096435,
+          "operating_margin": 28.458268603718185,
+          "net_margin": 25.60561312460522
+        },
+        "unit": "%"
+      },
+      {
+        "period": "2022-09-30",
+        "margins": {
+          "gross_margin": 42.25922392563175,
+          "operating_margin": 28.050052137643377,
+          "net_margin": 22.986044860559538
+        },
+        "unit": "%"
+      }
+    ],
+    "operating_efficiency": [
+      {
+        "period": "2023-09-30",
+        "opex_to_revenue": 15.12212563409238,
+        "unit": "%"
+      },
+      {
+        "period": "2023-06-30",
+        "opex_to_revenue": 16.45292614643569,
+        "unit": "%"
+      },
+      {
+        "period": "2023-03-31",
+        "opex_to_revenue": 14.285714285714285,
+        "unit": "%"
+      },
+      {
+        "period": "2022-12-31",
+        "opex_to_revenue": 12.045683459378253,
+        "unit": "%"
+      },
+      {
+        "period": "2022-09-30",
+        "opex_to_revenue": 14.209171787988376,
+        "unit": "%"
+      }
+    ]
+  }
+}

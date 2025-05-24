@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Statement Generator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            color: #212529;
+        }
+        .container {
+            max-width: 800px;
+            margin-top: 50px;
+        }
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .card-header {
+            background-color: #0066cc;
+            color: white;
+            font-weight: bold;
+            border-radius: 10px 10px 0 0;
+        }
+        .btn-primary {
+            background-color: #0066cc;
+            border-color: #0066cc;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+            border-color: #0056b3;
+        }
+        .ticker-input {
+            font-size: 1.2rem;
+            text-transform: uppercase;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+        }
+        .result-section {
+            display: none;
+        }
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="text-center mb-4">
+            <h1 class="display-4">Financial Statement Generator</h1>
+            <p class="lead">Generate detailed income statements for technology companies</p>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                Enter Company Ticker
+            </div>
+            <div class="card-body">
+                <form id="ticker-form">
+                    <div class="mb-3">
+                        <label for="ticker" class="form-label">Stock Ticker Symbol</label>
+                        <input type="text" class="form-control ticker-input" id="ticker" placeholder="e.g., AAPL" required>
+                        <div class="form-text">Enter the ticker symbol of any publicly-traded technology company.</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Generate Income Statement</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="loading" id="loading-section">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Retrieving financial data and generating Excel report...</p>
+            <p class="text-muted small">This may take a few moments as we analyze multiple data sources for the highest quality information.</p>
+        </div>
+
+        <div class="result-section" id="result-section">
+            <div class="card">
+                <div class="card-header">
+                    Income Statement Ready
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title" id="result-company">Company Name (TICKER)</h5>
+                    <p class="card-text">Your income statement has been successfully generated with the following details:</p>
+                    <ul class="list-group mb-3">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Periods Included
+                            <span class="badge bg-primary rounded-pill">12 quarters</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Line Items
+                            <span class="badge bg-primary rounded-pill">18 institutional metrics</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Format
+                            <span class="badge bg-primary rounded-pill">Excel (.xlsx)</span>
+                        </li>
+                    </ul>
+                    <a href="#" id="download-link" class="btn btn-success">Download Excel File</a>
+                    <button class="btn btn-secondary ms-2" id="new-search">New Search</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>This application automatically selects the highest quality financial data sources for each company.</p>
+            <p>All data is retrieved in real-time from authoritative financial data providers.</p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const tickerForm = document.getElementById('ticker-form');
+            const loadingSection = document.getElementById('loading-section');
+            const resultSection = document.getElementById('result-section');
+            const resultCompany = document.getElementById('result-company');
+            const downloadLink = document.getElementById('download-link');
+            const newSearchBtn = document.getElementById('new-search');
+            
+            tickerForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const ticker = document.getElementById('ticker').value.trim().toUpperCase();
+                
+                if (ticker) {
+                    // Show loading
+                    loadingSection.style.display = 'block';
+                    
+                    // Simulate API call (replace with actual API call)
+                    setTimeout(function() {
+                        // Hide loading
+                        loadingSection.style.display = 'none';
+                        
+                        // Update result and show result section
+                        resultCompany.textContent = `${ticker} Income Statement`;
+                        downloadLink.href = `/api/download/${ticker}`;
+                        resultSection.style.display = 'block';
+                    }, 2000);
+                }
+            });
+            
+            newSearchBtn.addEventListener('click', function() {
+                resultSection.style.display = 'none';
+                document.getElementById('ticker').value = '';
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,201 @@
+{
+  "ticker": "AAPL",
+  "company_name": "Apple Inc.",
+  "periods": {
+    "2023-09-30": {
+      "period_end_date": "2023-09-30",
+      "period_type": "quarterly",
+      "currency": "USD",
+      "items": {
+        "Revenues": {
+          "value": 89498000000,
+          "unit": "USD"
+        },
+        "CostOfRevenue": {
+          "value": 50428000000,
+          "unit": "USD"
+        },
+        "GrossProfit": {
+          "value": 39070000000,
+          "unit": "USD"
+        },
+        "OperatingExpenses": {
+          "value": 13534000000,
+          "unit": "USD"
+        },
+        "OperatingIncomeLoss": {
+          "value": 25536000000,
+          "unit": "USD"
+        },
+        "NetIncomeLoss": {
+          "value": 22956000000,
+          "unit": "USD"
+        },
+        "EarningsPerShareBasic": {
+          "value": 1.47,
+          "unit": "USD/share"
+        },
+        "EarningsPerShareDiluted": {
+          "value": 1.46,
+          "unit": "USD/share"
+        }
+      }
+    },
+    "2023-06-30": {
+      "period_end_date": "2023-06-30",
+      "period_type": "quarterly",
+      "currency": "USD",
+      "items": {
+        "Revenues": {
+          "value": 81797000000,
+          "unit": "USD"
+        },
+        "CostOfRevenue": {
+          "value": 45407000000,
+          "unit": "USD"
+        },
+        "GrossProfit": {
+          "value": 36390000000,
+          "unit": "USD"
+        },
+        "OperatingExpenses": {
+          "value": 13458000000,
+          "unit": "USD"
+        },
+        "OperatingIncomeLoss": {
+          "value": 22932000000,
+          "unit": "USD"
+        },
+        "NetIncomeLoss": {
+          "value": 19881000000,
+          "unit": "USD"
+        },
+        "EarningsPerShareBasic": {
+          "value": 1.27,
+          "unit": "USD/share"
+        },
+        "EarningsPerShareDiluted": {
+          "value": 1.26,
+          "unit": "USD/share"
+        }
+      }
+    },
+    "2023-03-31": {
+      "period_end_date": "2023-03-31",
+      "period_type": "quarterly",
+      "currency": "USD",
+      "items": {
+        "Revenues": {
+          "value": 94836000000,
+          "unit": "USD"
+        },
+        "CostOfRevenue": {
+          "value": 53315000000,
+          "unit": "USD"
+        },
+        "GrossProfit": {
+          "value": 41521000000,
+          "unit": "USD"
+        },
+        "OperatingExpenses": {
+          "value": 13548000000,
+          "unit": "USD"
+        },
+        "OperatingIncomeLoss": {
+          "value": 27973000000,
+          "unit": "USD"
+        },
+        "NetIncomeLoss": {
+          "value": 24160000000,
+          "unit": "USD"
+        },
+        "EarningsPerShareBasic": {
+          "value": 1.53,
+          "unit": "USD/share"
+        },
+        "EarningsPerShareDiluted": {
+          "value": 1.52,
+          "unit": "USD/share"
+        }
+      }
+    },
+    "2022-12-31": {
+      "period_end_date": "2022-12-31",
+      "period_type": "quarterly",
+      "currency": "USD",
+      "items": {
+        "Revenues": {
+          "value": 117154000000,
+          "unit": "USD"
+        },
+        "CostOfRevenue": {
+          "value": 69702000000,
+          "unit": "USD"
+        },
+        "GrossProfit": {
+          "value": 47452000000,
+          "unit": "USD"
+        },
+        "OperatingExpenses": {
+          "value": 14112000000,
+          "unit": "USD"
+        },
+        "OperatingIncomeLoss": {
+          "value": 33340000000,
+          "unit": "USD"
+        },
+        "NetIncomeLoss": {
+          "value": 29998000000,
+          "unit": "USD"
+        },
+        "EarningsPerShareBasic": {
+          "value": 1.89,
+          "unit": "USD/share"
+        },
+        "EarningsPerShareDiluted": {
+          "value": 1.88,
+          "unit": "USD/share"
+        }
+      }
+    },
+    "2022-09-30": {
+      "period_end_date": "2022-09-30",
+      "period_type": "quarterly",
+      "currency": "USD",
+      "items": {
+        "Revenues": {
+          "value": 90146000000,
+          "unit": "USD"
+        },
+        "CostOfRevenue": {
+          "value": 52051000000,
+          "unit": "USD"
+        },
+        "GrossProfit": {
+          "value": 38095000000,
+          "unit": "USD"
+        },
+        "OperatingExpenses": {
+          "value": 12809000000,
+          "unit": "USD"
+        },
+        "OperatingIncomeLoss": {
+          "value": 25286000000,
+          "unit": "USD"
+        },
+        "NetIncomeLoss": {
+          "value": 20721000000,
+          "unit": "USD"
+        },
+        "EarningsPerShareBasic": {
+          "value": 1.29,
+          "unit": "USD/share"
+        },
+        "EarningsPerShareDiluted": {
+          "value": 1.29,
+          "unit": "USD/share"
+        }
+      }
+    }
+  }
+}
