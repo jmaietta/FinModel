@@ -133,26 +133,54 @@
             const downloadLink = document.getElementById('download-link');
             const newSearchBtn = document.getElementById('new-search');
             
-            tickerForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                const ticker = document.getElementById('ticker').value.trim().toUpperCase();
-                
-                if (ticker) {
-                    // Show loading
-                    loadingSection.style.display = 'block';
-                    
-                    // Simulate API call (replace with actual API call)
-                    setTimeout(function() {
-                        // Hide loading
-                        loadingSection.style.display = 'none';
-                        
-                        // Update result and show result section
-                        resultCompany.textContent = `${ticker} Income Statement`;
-                        downloadLink.href = `/api/download/${ticker}`;
-                        resultSection.style.display = 'block';
-                    }, 2000);
-                }
-            });
+            <script>
+document.addEventListener('DOMContentLoaded', function() {
+  const tickerForm      = document.getElementById('ticker-form');
+  const loadingSection  = document.getElementById('loading-section');
+  const resultSection   = document.getElementById('result-section');
+  const resultCompany   = document.getElementById('result-company');
+  const downloadLink    = document.getElementById('download-link');
+  const newSearchBtn    = document.getElementById('new-search');
+
+  tickerForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    const ticker = document.getElementById('ticker').value.trim().toUpperCase();
+    if (!ticker) return;
+
+    // Show loading
+    loadingSection.style.display = 'block';
+    resultSection.style.display  = 'none';
+
+    // ❗️ REAL API CALL
+    fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ticker })
+    })
+    .then(res => res.json())
+    .then(data => {
+      loadingSection.style.display = 'none';
+      if (data.success) {
+        resultCompany.textContent = `${ticker} Income Statement`;
+        downloadLink.href        = data.download_url;
+        resultSection.style.display = 'block';
+      } else {
+        alert('Error: ' + (data.error || 'Failed to generate report'));
+      }
+    })
+    .catch(err => {
+      loadingSection.style.display = 'none';
+      alert('Error: ' + err.message);
+    });
+  });
+
+  newSearchBtn.addEventListener('click', function() {
+    resultSection.style.display   = 'none';
+    document.getElementById('ticker').value = '';
+  });
+});
+</script>
+
             
             newSearchBtn.addEventListener('click', function() {
                 resultSection.style.display = 'none';
