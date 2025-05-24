@@ -55,8 +55,7 @@ class PolygonAdapter:
             params = {
                 'ticker': ticker.upper(),
                 'timeframe': timeframe,
-                'limit': limit,
-                'filing_date.gte': '2020-01-01'  # Get data from 2020 onwards
+                'limit': limit
             }
             
             self.logger.info(f"Fetching {period} income statement for {ticker}")
@@ -115,8 +114,7 @@ class PolygonAdapter:
             params = {
                 'ticker': ticker.upper(),
                 'timeframe': timeframe,
-                'limit': limit,
-                'filing_date.gte': '2020-01-01'
+                'limit': limit
             }
             
             self.logger.info(f"Fetching {period} balance sheet for {ticker}")
@@ -171,8 +169,7 @@ class PolygonAdapter:
             params = {
                 'ticker': ticker.upper(),
                 'timeframe': timeframe,
-                'limit': limit,
-                'filing_date.gte': '2020-01-01'
+                'limit': limit
             }
             
             self.logger.info(f"Fetching {period} cash flow for {ticker}")
