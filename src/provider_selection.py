@@ -60,34 +60,44 @@ class ProviderSelector:
         try:
             self.logger.info(f"Fetching {period} income statement for {ticker} via Polygon")
             
-            # Use existing Polygon adapter
-            periods_list = self.polygon_adapter.get_income_statement(ticker, period, limit)
+            # Get data from Polygon adapter (now returns the correct institutional format)
+            adapter_result = self.polygon_adapter.get_income_statement(ticker, period, limit)
             
-            if not periods_list:
+            # Log what we received for debugging
+            self.logger.info(f"Adapter returned type: {type(adapter_result)}")
+            
+            if not adapter_result:
                 raise RuntimeError(f"No income statement data returned for {ticker}")
             
-            # Transform list to dictionary format that Excel generator expects
-            # Convert list of period data to dictionary with period dates as keys
-            periods_dict = {}
-            for period_data in periods_list:
-                period_key = period_data.get('period_end_date', f'period_{len(periods_dict)}')
-                periods_dict[period_key] = period_data
-            
-            # Return in expected format
-            return {
-                'ticker': ticker,
-                'provider': 'polygon',
-                'periods': periods_dict,  # Now a dictionary instead of list
-                'metadata': {
-                    'period_type': period,
-                    'limit': limit,
-                    'total_results': len(periods_dict)
+            # The new adapter already returns the correct format, so we can return it directly
+            # But we'll add some metadata for compatibility
+            if isinstance(adapter_result, dict) and 'periods' in adapter_result:
+                self.logger.info(f"Received correctly formatted data with {len(adapter_result['periods'])} periods")
+                
+                # Add metadata for compatibility with any downstream processing
+                result = {
+                    'ticker': adapter_result.get('ticker', ticker),
+                    'company_name': adapter_result.get('company_name', ticker),
+                    'periods': adapter_result['periods'],  # This is already in the correct format
+                    'metadata': {
+                        'provider': 'polygon',
+                        'period_type': period,
+                        'limit': limit,
+                        'total_results': len(adapter_result['periods'])
+                    }
                 }
-            }
+                
+                return result
+            else:
+                # Handle case where adapter returns unexpected format
+                self.logger.error(f"Unexpected data format from adapter: {type(adapter_result)}")
+                raise RuntimeError(f"Invalid data format returned for {ticker}")
             
         except Exception as e:
             error_msg = f"Polygon API failed for {ticker}: {e}"
             self.logger.error(error_msg)
+            import traceback
+            self.logger.error(f"Full traceback: {traceback.format_exc()}")
             raise RuntimeError(error_msg)
     
     def get_balance_sheet(
@@ -113,6 +123,7 @@ class ProviderSelector:
         try:
             self.logger.info(f"Fetching {period} balance sheet for {ticker} via Polygon")
             
+            # Balance sheet still returns list format, so we transform it
             periods_list = self.polygon_adapter.get_balance_sheet(ticker, period, limit)
             
             if not periods_list:
@@ -126,9 +137,10 @@ class ProviderSelector:
             
             return {
                 'ticker': ticker,
-                'provider': 'polygon',
+                'company_name': ticker,
                 'periods': periods_dict,  # Dictionary format
                 'metadata': {
+                    'provider': 'polygon',
                     'period_type': period,
                     'limit': limit,
                     'total_results': len(periods_dict)
@@ -163,6 +175,7 @@ class ProviderSelector:
         try:
             self.logger.info(f"Fetching {period} cash flow for {ticker} via Polygon")
             
+            # Cash flow still returns list format, so we transform it
             periods_list = self.polygon_adapter.get_cash_flow(ticker, period, limit)
             
             if not periods_list:
@@ -176,9 +189,10 @@ class ProviderSelector:
             
             return {
                 'ticker': ticker,
-                'provider': 'polygon',
+                'company_name': ticker,
                 'periods': periods_dict,  # Dictionary format
                 'metadata': {
+                    'provider': 'polygon',
                     'period_type': period,
                     'limit': limit,
                     'total_results': len(periods_dict)
