@@ -1,5 +1,5 @@
 """
-Corrected data adapter module with proper field mapping for institutional template.
+Fixed data adapter that returns data in the exact format expected by excel_generator.py
 """
 import logging
 import requests
@@ -8,7 +8,7 @@ from datetime import datetime
 
 
 class PolygonAdapter:
-    """Enhanced Polygon.io API adapter with correct field mapping for institutional template."""
+    """Fixed Polygon.io API adapter that returns institutional template format."""
     
     def __init__(self, api_key: str):
         """Initialize Polygon adapter with API key."""
@@ -46,18 +46,12 @@ class PolygonAdapter:
     
     def get_income_statement(self, ticker: str, period: str = 'quarterly', limit: int = 12) -> Dict:
         """
-        Fetch comprehensive income statement data from Polygon in the format expected by institutional template.
+        Fetch income statement data in the format expected by excel_generator.py
         
-        Args:
-            ticker: Stock ticker symbol
-            period: 'quarterly' or 'annual'
-            limit: Number of periods to fetch
-            
         Returns:
-            Dictionary in the format expected by institutional template
+            Dictionary with 'periods' key containing financial data
         """
         try:
-            # Map period parameter to Polygon's expected values
             timeframe = 'quarterly' if period.lower() == 'quarterly' else 'annual'
             
             endpoint = f"/vX/reference/financials"
@@ -78,14 +72,14 @@ class PolygonAdapter:
                     'periods': {}
                 }
             
-            # Initialize the result structure expected by the template
+            # Initialize the result in the format expected by excel_generator.py
             result = {
                 'ticker': ticker.upper(),
-                'company_name': ticker.upper(),  # You can enhance this with company name lookup
+                'company_name': ticker.upper(),
                 'periods': {}
             }
             
-            # Process each period from the API response
+            # Process each period from Polygon API
             for api_result in data.get('results', []):
                 if 'financials' in api_result and 'income_statement' in api_result['financials']:
                     income_stmt = api_result['financials']['income_statement']
@@ -96,17 +90,17 @@ class PolygonAdapter:
                     
                     # Log available fields for debugging (first result only)
                     if period_date == data['results'][0].get('end_date'):
-                        self.logger.info(f"Available Polygon fields: {list(income_stmt.keys())}")
+                        available_fields = list(income_stmt.keys())
+                        self.logger.info(f"Available Polygon fields for {ticker}: {available_fields}")
                     
-                    # Map Polygon API fields to institutional template keys
-                    # This mapping is critical - it connects what Polygon returns to what your template expects
+                    # Create period items with institutional template field names
                     period_items = {
-                        # Revenue and Cost
+                        # Core Revenue Items
                         'Revenues': {'value': self._safe_get_value(income_stmt, 'revenues')},
                         'CostOfGoodsSold': {'value': self._safe_get_value(income_stmt, 'cost_of_revenue')},
                         'GrossProfit': {'value': self._safe_get_value(income_stmt, 'gross_profit')},
                         
-                        # Operating Expenses - try different field combinations
+                        # Operating Expenses
                         'SalesAndMarketingExpense': {'value': self._safe_get_value(income_stmt, 'selling_general_and_administrative_expenses')},
                         'ResearchAndDevelopmentExpense': {'value': self._safe_get_value(income_stmt, 'research_and_development')},
                         'GeneralAndAdministrativeExpense': {'value': self._safe_get_value(income_stmt, 'general_and_administrative_expenses')},
@@ -116,41 +110,53 @@ class PolygonAdapter:
                         # Operating Income
                         'OperatingIncomeLoss': {'value': self._safe_get_value(income_stmt, 'operating_income_loss')},
                         
-                        # Interest and Other Income/Expenses
+                        # Interest and Other Items
                         'InterestExpense': {'value': self._safe_get_value(income_stmt, 'interest_expense')},
                         'InterestIncome': {'value': self._safe_get_value(income_stmt, 'interest_income')},
                         'OtherExpenses': {'value': self._safe_get_value(income_stmt, 'nonoperating_income_loss')},
                         'OtherIncome': {'value': self._safe_get_value(income_stmt, 'other_comprehensive_income_loss')},
                         
-                        # Depreciation & Amortization
+                        # Depreciation
                         'DepreciationAndAmortization': {'value': self._safe_get_value(income_stmt, 'depreciation_and_amortization')},
                         
-                        # Pre-tax and Tax
+                        # Pre-tax and Taxes
                         'IncomeLossBeforeIncomeTaxes': {'value': self._safe_get_value(income_stmt, 'income_loss_from_continuing_operations_before_tax')},
                         'IncomeTaxExpenseBenefit': {'value': self._safe_get_value(income_stmt, 'income_tax_expense_benefit')},
                         
                         # Net Income
                         'NetIncomeLoss': {'value': self._safe_get_value(income_stmt, 'net_income_loss')},
                         
-                        # Share counts
+                        # Shares Outstanding
                         'WeightedAverageSharesOutstandingDiluted': {'value': self._safe_get_value(income_stmt, 'weighted_average_shares_outstanding_diluted')},
                     }
                     
-                    # Add the period data to the result
+                    # Add this period to the result
                     result['periods'][period_date] = {
                         'items': period_items
                     }
                     
-                    # Log what was extracted for debugging
+                    # Log extracted values for debugging
                     revenue = period_items['Revenues']['value']
                     net_income = period_items['NetIncomeLoss']['value']
-                    self.logger.info(f"Extracted for {period_date}: Revenue=${revenue:,.0f}, Net Income=${net_income:,.0f}")
+                    operating_income = period_items['OperatingIncomeLoss']['value']
+                    
+                    self.logger.info(f"Extracted for {period_date}: Revenue=${revenue:,.0f}, Operating Income=${operating_income:,.0f}, Net Income=${net_income:,.0f}")
             
-            self.logger.info(f"Successfully processed {len(result['periods'])} periods for {ticker}")
+            periods_count = len(result['periods'])
+            self.logger.info(f"Successfully processed {periods_count} periods for {ticker}")
+            
+            # Log the final structure for debugging
+            if periods_count > 0:
+                sample_period = list(result['periods'].keys())[0]
+                sample_items_count = len(result['periods'][sample_period]['items'])
+                self.logger.info(f"Sample period {sample_period} has {sample_items_count} line items")
+            
             return result
             
         except Exception as e:
             self.logger.error(f"Error fetching income statement for {ticker}: {str(e)}")
+            import traceback
+            self.logger.error(f"Traceback: {traceback.format_exc()}")
             return {
                 'ticker': ticker.upper(),
                 'company_name': ticker.upper(),
@@ -158,10 +164,7 @@ class PolygonAdapter:
             }
     
     def debug_available_fields(self, ticker: str, period: str = 'quarterly', limit: int = 1) -> Dict:
-        """
-        Debug method to see all available fields in Polygon response.
-        This helps identify correct field names for mapping.
-        """
+        """Debug method to see all available fields in Polygon response."""
         try:
             timeframe = 'quarterly' if period.lower() == 'quarterly' else 'annual'
             
@@ -178,13 +181,26 @@ class PolygonAdapter:
             if data and 'results' in data and len(data['results']) > 0:
                 result = data['results'][0]
                 if 'financials' in result:
-                    return {
+                    debug_info = {
+                        'end_date': result.get('end_date', 'Unknown'),
+                        'filing_date': result.get('filing_date', 'Unknown'),
                         'income_statement_fields': list(result['financials'].get('income_statement', {}).keys()),
                         'balance_sheet_fields': list(result['financials'].get('balance_sheet', {}).keys()),
-                        'cash_flow_fields': list(result['financials'].get('cash_flow_statement', {}).keys()),
-                        'sample_income_statement': result['financials'].get('income_statement', {}),
-                        'end_date': result.get('end_date', 'Unknown')
+                        'cash_flow_fields': list(result['financials'].get('cash_flow_statement', {}).keys())
                     }
+                    
+                    # Show sample values for key income statement fields
+                    income_stmt = result['financials'].get('income_statement', {})
+                    sample_values = {}
+                    key_fields = ['revenues', 'cost_of_revenue', 'gross_profit', 'operating_income_loss', 'net_income_loss']
+                    
+                    for field in key_fields:
+                        if field in income_stmt:
+                            value = self._safe_get_value(income_stmt, field)
+                            sample_values[field] = value
+                    
+                    debug_info['sample_values'] = sample_values
+                    return debug_info
             
             return {}
             
@@ -193,17 +209,7 @@ class PolygonAdapter:
             return {}
     
     def get_balance_sheet(self, ticker: str, period: str = 'quarterly', limit: int = 12) -> List[Dict]:
-        """
-        Fetch balance sheet data from Polygon.
-        
-        Args:
-            ticker: Stock ticker symbol
-            period: 'quarterly' or 'annual'
-            limit: Number of periods to fetch
-            
-        Returns:
-            List of balance sheet data dictionaries
-        """
+        """Fetch balance sheet data from Polygon."""
         try:
             timeframe = 'quarterly' if period.lower() == 'quarterly' else 'annual'
             
@@ -248,17 +254,7 @@ class PolygonAdapter:
             return []
     
     def get_cash_flow(self, ticker: str, period: str = 'quarterly', limit: int = 12) -> List[Dict]:
-        """
-        Fetch cash flow statement data from Polygon.
-        
-        Args:
-            ticker: Stock ticker symbol
-            period: 'quarterly' or 'annual'
-            limit: Number of periods to fetch
-            
-        Returns:
-            List of cash flow data dictionaries
-        """
+        """Fetch cash flow statement data from Polygon."""
         try:
             timeframe = 'quarterly' if period.lower() == 'quarterly' else 'annual'
             
@@ -302,7 +298,7 @@ class PolygonAdapter:
 
 
 class ProviderSelector:
-    """Provider selector simplified to use only Polygon."""
+    """Provider selector that returns data in institutional template format."""
     
     def __init__(self, api_keys: dict):
         """Initialize with API keys dictionary."""
@@ -314,8 +310,8 @@ class ProviderSelector:
         self.logger = logging.getLogger(__name__)
     
     def get_income_statement(self, ticker: str, period: str = 'quarterly', limit: int = 12):
-        """Fetch income statement via Polygon only."""
-        self.logger.info(f"Fetching income statement for {ticker} via Polygon")
+        """Fetch income statement in institutional template format."""
+        self.logger.info(f"Fetching quarterly income statement for {ticker} via Polygon")
         return self.adapter.get_income_statement(ticker, period, limit)
     
     def get_balance_sheet(self, ticker: str, period: str = 'quarterly', limit: int = 12):
