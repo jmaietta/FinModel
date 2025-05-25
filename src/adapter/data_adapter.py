@@ -1,5 +1,6 @@
 """
-SG&A focused data adapter to specifically test for selling_general_and_administrative_expenses field.
+Final production adapter with clean SG&A mapping using other_operating_expenses.
+Professional approach - shows what's available vs. what's missing.
 """
 import logging
 import requests
@@ -8,7 +9,7 @@ from datetime import datetime
 
 
 class PolygonAdapter:
-    """Polygon adapter focused on finding SG&A expenses field."""
+    """Final production Polygon adapter with realistic field mapping."""
     
     def __init__(self, api_key: str):
         """Initialize Polygon adapter with API key."""
@@ -35,117 +36,21 @@ class PolygonAdapter:
             self.logger.error(f"Unexpected error: {str(e)}")
             return None
     
-    def _safe_get_value(self, data_dict: Dict, key: str, default=0) -> float:
+    def _safe_get_value(self, data_dict: Dict, key: str, default=None) -> Optional[float]:
         """Safely extract value from nested dictionary structure."""
         try:
             if key in data_dict and isinstance(data_dict[key], dict):
-                return float(data_dict[key].get('value', default))
-            return float(default)
+                value = data_dict[key].get('value')
+                return float(value) if value is not None else None
+            return default
         except (ValueError, TypeError):
-            return float(default)
-    
-    def test_sga_field_variations(self, ticker: str) -> Dict:
-        """
-        Test various SG&A field name variations to find the correct one.
-        """
-        try:
-            endpoint = f"/vX/reference/financials"
-            params = {
-                'ticker': ticker.upper(),
-                'timeframe': 'quarterly',
-                'limit': 1
-            }
-            
-            self.logger.info(f"=== TESTING SG&A FIELD VARIATIONS FOR {ticker} ===")
-            data = self._make_request(endpoint, params)
-            
-            if not data or 'results' not in data or len(data['results']) == 0:
-                self.logger.warning(f"No data found for {ticker}")
-                return {}
-            
-            result = data['results'][0]
-            if 'financials' not in result or 'income_statement' not in result['financials']:
-                self.logger.warning(f"No income statement found for {ticker}")
-                return {}
-            
-            income_stmt = result['financials']['income_statement']
-            period_date = result.get('end_date', 'Unknown')
-            
-            # Test specific SG&A field variations
-            sga_field_variations = [
-                'selling_general_and_administrative_expenses',
-                'selling_general_administrative_expenses', 
-                'sg_a_expenses',
-                'sga_expenses',
-                'selling_and_administrative_expenses',
-                'general_and_administrative_expenses',
-                'selling_general_admin_expenses',
-                'sales_general_administrative_expenses',
-                'selling_administrative_expenses'
-            ]
-            
-            self.logger.info(f"Period: {period_date}")
-            self.logger.info(f"Testing {len(sga_field_variations)} SG&A field variations...")
-            
-            found_fields = {}
-            
-            # Test each variation
-            for field_name in sga_field_variations:
-                if field_name in income_stmt:
-                    value = self._safe_get_value(income_stmt, field_name)
-                    found_fields[field_name] = value
-                    
-                    self.logger.info(f"✅ FOUND: '{field_name}' = ${value/1000000:.1f}M")
-                    
-                    # Check if this matches expected MSFT SG&A (~$7.95B)
-                    if 7500 <= value/1000000 <= 8500:
-                        self.logger.info(f"🎯 LIKELY MATCH for SG&A: '{field_name}' = ${value/1000000:.1f}M")
-                else:
-                    self.logger.debug(f"❌ Not found: '{field_name}'")
-            
-            if not found_fields:
-                self.logger.info("❌ No SG&A field variations found")
-                
-                # Show what fields ARE available for reference
-                self.logger.info("Available fields for reference:")
-                for field_name in sorted(income_stmt.keys()):
-                    if any(keyword in field_name.lower() for keyword in ['sell', 'admin', 'general', 'expense', 'operating']):
-                        value = self._safe_get_value(income_stmt, field_name)
-                        self.logger.info(f"  '{field_name}': ${value/1000000:.1f}M")
-            
-            return {
-                'period': period_date,
-                'found_sga_fields': found_fields,
-                'total_variations_tested': len(sga_field_variations),
-                'matches_found': len(found_fields)
-            }
-            
-        except Exception as e:
-            self.logger.error(f"Error testing SG&A fields for {ticker}: {str(e)}")
-            import traceback
-            self.logger.error(f"Traceback: {traceback.format_exc()}")
-            return {}
+            return default
     
     def get_income_statement(self, ticker: str, period: str = 'quarterly', limit: int = 12) -> Dict:
         """
-        Get income statement WITH SG&A field testing and proper mapping.
+        Get income statement with realistic field mapping based on Polygon's actual data structure.
         """
         try:
-            # First, test SG&A field variations
-            sga_test_results = self.test_sga_field_variations(ticker)
-            
-            # Determine the correct SG&A field name
-            sga_field_name = None
-            if sga_test_results.get('found_sga_fields'):
-                # Use the first found field (they should all be the same)
-                sga_field_name = list(sga_test_results['found_sga_fields'].keys())[0]
-                self.logger.info(f"Using SG&A field: '{sga_field_name}'")
-            else:
-                # Fallback to other_operating_expenses if no SG&A field found
-                sga_field_name = 'other_operating_expenses'
-                self.logger.info(f"No SG&A field found, using fallback: '{sga_field_name}'")
-            
-            # Now fetch the full dataset
             timeframe = 'quarterly' if period.lower() == 'quarterly' else 'annual'
             
             endpoint = f"/vX/reference/financials"
@@ -171,8 +76,17 @@ class PolygonAdapter:
                 'ticker': ticker.upper(),
                 'company_name': ticker.upper(),
                 'periods': {},
-                'sga_field_discovery': sga_test_results,
-                'sga_field_used': sga_field_name
+                'data_source_notes': {
+                    'provider': 'Polygon.io',
+                    'data_policy': 'Actual data only - no estimates',
+                    'field_limitations': {
+                        'sales_marketing_separate': 'Not available - combined in other_operating_expenses',
+                        'general_admin_separate': 'Not available - combined in other_operating_expenses', 
+                        'stock_compensation': 'Not separately disclosed',
+                        'interest_income_expense': 'Not separately disclosed',
+                        'depreciation_amortization': 'Not separately disclosed'
+                    }
+                }
             }
             
             # Process each period
@@ -184,42 +98,117 @@ class PolygonAdapter:
                     if not period_date:
                         continue
                     
-                    # Create period items with SG&A mapping
+                    # Create period items with realistic mapping
                     period_items = {
-                        # CORE FIELDS (confirmed working)
-                        'Revenues': {'value': self._safe_get_value(income_stmt, 'revenues')},
-                        'CostOfGoodsSold': {'value': self._safe_get_value(income_stmt, 'cost_of_revenue')},
-                        'GrossProfit': {'value': self._safe_get_value(income_stmt, 'gross_profit')},
-                        'ResearchAndDevelopmentExpense': {'value': self._safe_get_value(income_stmt, 'research_and_development')},
-                        'OperatingExpenses': {'value': self._safe_get_value(income_stmt, 'operating_expenses')},
-                        'OperatingIncomeLoss': {'value': self._safe_get_value(income_stmt, 'operating_income_loss')},
-                        'IncomeLossBeforeIncomeTaxes': {'value': self._safe_get_value(income_stmt, 'income_loss_from_continuing_operations_before_tax')},
-                        'IncomeTaxExpenseBenefit': {'value': self._safe_get_value(income_stmt, 'income_tax_expense_benefit')},
-                        'NetIncomeLoss': {'value': self._safe_get_value(income_stmt, 'net_income_loss')},
-                        'WeightedAverageSharesOutstandingDiluted': {'value': self._safe_get_value(income_stmt, 'diluted_average_shares')},
+                        # AVAILABLE FIELDS (high confidence - directly from Polygon)
+                        'Revenues': {
+                            'value': self._safe_get_value(income_stmt, 'revenues'),
+                            'source': 'polygon_direct',
+                            'confidence': 'high'
+                        },
+                        'CostOfGoodsSold': {
+                            'value': self._safe_get_value(income_stmt, 'cost_of_revenue'),
+                            'source': 'polygon_direct',
+                            'confidence': 'high'
+                        },
+                        'GrossProfit': {
+                            'value': self._safe_get_value(income_stmt, 'gross_profit'),
+                            'source': 'polygon_direct',
+                            'confidence': 'high'
+                        },
+                        'ResearchAndDevelopmentExpense': {
+                            'value': self._safe_get_value(income_stmt, 'research_and_development'),
+                            'source': 'polygon_direct',
+                            'confidence': 'high'
+                        },
+                        'OperatingExpenses': {
+                            'value': self._safe_get_value(income_stmt, 'operating_expenses'),
+                            'source': 'polygon_direct',
+                            'confidence': 'high'
+                        },
+                        'OperatingIncomeLoss': {
+                            'value': self._safe_get_value(income_stmt, 'operating_income_loss'),
+                            'source': 'polygon_direct',
+                            'confidence': 'high'
+                        },
+                        'IncomeLossBeforeIncomeTaxes': {
+                            'value': self._safe_get_value(income_stmt, 'income_loss_from_continuing_operations_before_tax'),
+                            'source': 'polygon_direct',
+                            'confidence': 'high'
+                        },
+                        'IncomeTaxExpenseBenefit': {
+                            'value': self._safe_get_value(income_stmt, 'income_tax_expense_benefit'),
+                            'source': 'polygon_direct',
+                            'confidence': 'high'
+                        },
+                        'NetIncomeLoss': {
+                            'value': self._safe_get_value(income_stmt, 'net_income_loss'),
+                            'source': 'polygon_direct',
+                            'confidence': 'high'
+                        },
+                        'WeightedAverageSharesOutstandingDiluted': {
+                            'value': self._safe_get_value(income_stmt, 'diluted_average_shares'),
+                            'source': 'polygon_direct',
+                            'confidence': 'high'
+                        },
                         
-                        # SG&A FIELD (using discovered field name)
+                        # COMBINED SG&A (available as other_operating_expenses)
+                        'SellingGeneralAndAdministrativeExpenses': {
+                            'value': self._safe_get_value(income_stmt, 'other_operating_expenses'),
+                            'source': 'polygon_other_operating_expenses',
+                            'confidence': 'high',
+                            'note': 'Combined Sales & Marketing + General & Administrative expenses'
+                        },
+                        
+                        # UNAVAILABLE FIELDS (not separately disclosed by Polygon)
                         'SalesAndMarketingExpense': {
-                            'value': None,  # Not available separately
-                            'note': 'Combined with G&A in SG&A field'
+                            'value': None,
+                            'source': 'unavailable',
+                            'confidence': 'none',
+                            'note': 'Not separately disclosed - included in SG&A combined figure'
                         },
                         'GeneralAndAdministrativeExpense': {
-                            'value': None,  # Not available separately  
-                            'note': 'Combined with Sales & Marketing in SG&A field'
+                            'value': None,
+                            'source': 'unavailable',
+                            'confidence': 'none',
+                            'note': 'Not separately disclosed - included in SG&A combined figure'
                         },
-                        'SellingGeneralAndAdministrativeExpenses': {
-                            'value': self._safe_get_value(income_stmt, sga_field_name),
-                            'source_field': sga_field_name,
-                            'note': 'Combined Sales & Marketing + General & Administrative'
+                        'StockBasedCompensation': {
+                            'value': None,
+                            'source': 'unavailable',
+                            'confidence': 'none',
+                            'note': 'Not separately disclosed by Polygon - likely included in SG&A'
                         },
-                        
-                        # OTHER FIELDS
-                        'StockBasedCompensation': {'value': 0, 'note': 'Not separately available from Polygon'},
-                        'InterestExpense': {'value': 0, 'note': 'Not separately available from Polygon'},
-                        'InterestIncome': {'value': 0, 'note': 'Not separately available from Polygon'},
-                        'OtherExpenses': {'value': self._safe_get_value(income_stmt, 'nonoperating_income_loss')},
-                        'OtherIncome': {'value': 0, 'note': 'Not separately available from Polygon'},
-                        'DepreciationAndAmortization': {'value': 0, 'note': 'Not separately available from Polygon'},
+                        'InterestExpense': {
+                            'value': None,
+                            'source': 'unavailable',
+                            'confidence': 'none',
+                            'note': 'Not separately disclosed by Polygon'
+                        },
+                        'InterestIncome': {
+                            'value': None,
+                            'source': 'unavailable',
+                            'confidence': 'none',
+                            'note': 'Not separately disclosed by Polygon'
+                        },
+                        'OtherExpenses': {
+                            'value': self._safe_get_value(income_stmt, 'nonoperating_income_loss'),
+                            'source': 'polygon_nonoperating',
+                            'confidence': 'medium',
+                            'note': 'Mapped to nonoperating_income_loss'
+                        },
+                        'OtherIncome': {
+                            'value': None,
+                            'source': 'unavailable',
+                            'confidence': 'none',
+                            'note': 'Not separately disclosed by Polygon'
+                        },
+                        'DepreciationAndAmortization': {
+                            'value': None,
+                            'source': 'unavailable',
+                            'confidence': 'none',
+                            'note': 'Not separately disclosed by Polygon'
+                        }
                     }
                     
                     # Add this period to the result
@@ -227,28 +216,28 @@ class PolygonAdapter:
                         'items': period_items
                     }
                     
-                    # Log the results
-                    revenue = period_items['Revenues']['value']
-                    sga = period_items['SellingGeneralAndAdministrativeExpenses']['value']
-                    rd = period_items['ResearchAndDevelopmentExpense']['value']
-                    net_income = period_items['NetIncomeLoss']['value']
+                    # Log summary for transparency
+                    revenue = period_items['Revenues']['value'] or 0
+                    sga = period_items['SellingGeneralAndAdministrativeExpenses']['value'] or 0
+                    rd = period_items['ResearchAndDevelopmentExpense']['value'] or 0
+                    net_income = period_items['NetIncomeLoss']['value'] or 0
                     
                     self.logger.info(f"PROCESSED {period_date}:")
-                    self.logger.info(f"  Revenue: ${revenue/1000000:.0f}M")
-                    self.logger.info(f"  SG&A ({sga_field_name}): ${sga/1000000:.0f}M")
-                    self.logger.info(f"  R&D: ${rd/1000000:.0f}M")
-                    self.logger.info(f"  Net Income: ${net_income/1000000:.0f}M")
-                    
-                    # Verify against expected MSFT numbers for Q1 2025
-                    if period_date == '2025-03-31':
-                        expected_sga = 7949  # S&M $6,212M + G&A $1,737M
-                        if abs(sga/1000000 - expected_sga) < 100:  # Within $100M
-                            self.logger.info(f"✅ SG&A VERIFICATION: ${sga/1000000:.0f}M matches expected ~${expected_sga}M")
-                        else:
-                            self.logger.warning(f"⚠️  SG&A VERIFICATION: ${sga/1000000:.0f}M differs from expected ~${expected_sga}M")
+                    self.logger.info(f"  ✅ Revenue: ${revenue/1000000:.0f}M (actual)")
+                    self.logger.info(f"  ✅ R&D: ${rd/1000000:.0f}M (actual)")
+                    self.logger.info(f"  ✅ SG&A Combined: ${sga/1000000:.0f}M (actual)")
+                    self.logger.info(f"  ❌ Sales & Marketing: N/A (not separately available)")
+                    self.logger.info(f"  ❌ G&A: N/A (not separately available)")
+                    self.logger.info(f"  ✅ Net Income: ${net_income/1000000:.0f}M (actual)")
             
             periods_count = len(result['periods'])
-            self.logger.info(f"Successfully processed {periods_count} periods for {ticker} with SG&A field testing")
+            self.logger.info(f"Successfully processed {periods_count} periods for {ticker}")
+            
+            # Log data quality summary
+            self.logger.info("DATA QUALITY SUMMARY:")
+            self.logger.info("  ✅ High quality: Revenue, R&D, SG&A (combined), Operating Income, Net Income")
+            self.logger.info("  ❌ Not available: Sales & Marketing (separate), G&A (separate), Stock Comp, Interest, D&A")
+            self.logger.info("  📊 Professional approach: Show actual data availability, no false estimates")
             
             return result
             
@@ -264,15 +253,95 @@ class PolygonAdapter:
     
     def get_balance_sheet(self, ticker: str, period: str = 'quarterly', limit: int = 12) -> List[Dict]:
         """Fetch balance sheet data from Polygon."""
-        return []
+        try:
+            timeframe = 'quarterly' if period.lower() == 'quarterly' else 'annual'
+            
+            endpoint = f"/vX/reference/financials"
+            params = {
+                'ticker': ticker.upper(),
+                'timeframe': timeframe,
+                'limit': limit
+            }
+            
+            self.logger.info(f"Fetching {period} balance sheet for {ticker}")
+            data = self._make_request(endpoint, params)
+            
+            if not data or 'results' not in data:
+                self.logger.warning(f"No balance sheet data found for {ticker}")
+                return []
+            
+            formatted_data = []
+            for result in data.get('results', []):
+                if 'financials' in result and 'balance_sheet' in result['financials']:
+                    balance_sheet = result['financials']['balance_sheet']
+                    
+                    formatted_item = {
+                        'ticker': ticker.upper(),
+                        'period_end_date': result.get('end_date', ''),
+                        'filing_date': result.get('filing_date', ''),
+                        'timeframe': result.get('timeframe', ''),
+                        'total_assets': self._safe_get_value(balance_sheet, 'assets'),
+                        'current_assets': self._safe_get_value(balance_sheet, 'current_assets'),
+                        'total_liabilities': self._safe_get_value(balance_sheet, 'liabilities'),
+                        'current_liabilities': self._safe_get_value(balance_sheet, 'current_liabilities'),
+                        'total_equity': self._safe_get_value(balance_sheet, 'equity'),
+                        'retained_earnings': self._safe_get_value(balance_sheet, 'equity_attributable_to_parent'),
+                    }
+                    formatted_data.append(formatted_item)
+            
+            self.logger.info(f"Successfully fetched {len(formatted_data)} balance sheet records for {ticker}")
+            return formatted_data
+            
+        except Exception as e:
+            self.logger.error(f"Error fetching balance sheet for {ticker}: {str(e)}")
+            return []
     
     def get_cash_flow(self, ticker: str, period: str = 'quarterly', limit: int = 12) -> List[Dict]:
         """Fetch cash flow statement data from Polygon."""
-        return []
+        try:
+            timeframe = 'quarterly' if period.lower() == 'quarterly' else 'annual'
+            
+            endpoint = f"/vX/reference/financials"
+            params = {
+                'ticker': ticker.upper(),
+                'timeframe': timeframe,
+                'limit': limit
+            }
+            
+            self.logger.info(f"Fetching {period} cash flow for {ticker}")
+            data = self._make_request(endpoint, params)
+            
+            if not data or 'results' not in data:
+                self.logger.warning(f"No cash flow data found for {ticker}")
+                return []
+            
+            formatted_data = []
+            for result in data.get('results', []):
+                if 'financials' in result and 'cash_flow_statement' in result['financials']:
+                    cash_flow = result['financials']['cash_flow_statement']
+                    
+                    formatted_item = {
+                        'ticker': ticker.upper(),
+                        'period_end_date': result.get('end_date', ''),
+                        'filing_date': result.get('filing_date', ''),
+                        'timeframe': result.get('timeframe', ''),
+                        'operating_cash_flow': self._safe_get_value(cash_flow, 'net_cash_flow_from_operating_activities'),
+                        'investing_cash_flow': self._safe_get_value(cash_flow, 'net_cash_flow_from_investing_activities'),
+                        'financing_cash_flow': self._safe_get_value(cash_flow, 'net_cash_flow_from_financing_activities'),
+                        'free_cash_flow': self._safe_get_value(cash_flow, 'net_cash_flow'),
+                    }
+                    formatted_data.append(formatted_item)
+            
+            self.logger.info(f"Successfully fetched {len(formatted_data)} cash flow records for {ticker}")
+            return formatted_data
+            
+        except Exception as e:
+            self.logger.error(f"Error fetching cash flow for {ticker}: {str(e)}")
+            return []
 
 
 class ProviderSelector:
-    """Provider selector with SG&A field testing."""
+    """Provider selector with realistic data expectations."""
     
     def __init__(self, api_keys: dict):
         """Initialize with API keys dictionary."""
@@ -284,8 +353,8 @@ class ProviderSelector:
         self.logger = logging.getLogger(__name__)
     
     def get_income_statement(self, ticker: str, period: str = 'quarterly', limit: int = 12):
-        """Fetch income statement with SG&A field testing."""
-        self.logger.info(f"Fetching income statement for {ticker} with SG&A field testing")
+        """Fetch income statement with realistic field expectations."""
+        self.logger.info(f"Fetching income statement for {ticker} - professional data quality approach")
         return self.adapter.get_income_statement(ticker, period, limit)
     
     def get_balance_sheet(self, ticker: str, period: str = 'quarterly', limit: int = 12):
@@ -297,7 +366,3 @@ class ProviderSelector:
         """Fetch cash flow via Polygon only."""
         self.logger.info(f"Fetching cash flow for {ticker} via Polygon")
         return self.adapter.get_cash_flow(ticker, period, limit)
-    
-    def test_sga_fields(self, ticker: str):
-        """Test SG&A field variations for a ticker."""
-        return self.adapter.test_sga_field_variations(ticker)
