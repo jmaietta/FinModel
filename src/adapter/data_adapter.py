@@ -244,4 +244,87 @@ class PolygonAdapter:
                         'total_equity': self._safe_get_value(balance_sheet, 'equity'),
                         'retained_earnings': self._safe_get_value(balance_sheet, 'equity_attributable_to_parent'),
                     }
-                    format
+                    formatted_data.append(formatted_item)
+            
+            self.logger.info(f"Successfully fetched {len(formatted_data)} balance sheet records for {ticker}")
+            return formatted_data
+            
+        except Exception as e:
+            self.logger.error(f"Error fetching balance sheet for {ticker}: {str(e)}")
+            return []
+    
+    def get_cash_flow(self, ticker: str, period: str = 'quarterly', limit: int = 12) -> List[Dict]:
+        """Fetch cash flow statement data from Polygon."""
+        try:
+            timeframe = 'quarterly' if period.lower() == 'quarterly' else 'annual'
+            
+            endpoint = f"/vX/reference/financials"
+            params = {
+                'ticker': ticker.upper(),
+                'timeframe': timeframe,
+                'limit': limit
+            }
+            
+            self.logger.info(f"Fetching {period} cash flow for {ticker}")
+            data = self._make_request(endpoint, params)
+            
+            if not data or 'results' not in data:
+                self.logger.warning(f"No cash flow data found for {ticker}")
+                return []
+            
+            formatted_data = []
+            for result in data.get('results', []):
+                if 'financials' in result and 'cash_flow_statement' in result['financials']:
+                    cash_flow = result['financials']['cash_flow_statement']
+                    
+                    formatted_item = {
+                        'ticker': ticker.upper(),
+                        'period_end_date': result.get('end_date', ''),
+                        'filing_date': result.get('filing_date', ''),
+                        'timeframe': result.get('timeframe', ''),
+                        'operating_cash_flow': self._safe_get_value(cash_flow, 'net_cash_flow_from_operating_activities'),
+                        'investing_cash_flow': self._safe_get_value(cash_flow, 'net_cash_flow_from_investing_activities'),
+                        'financing_cash_flow': self._safe_get_value(cash_flow, 'net_cash_flow_from_financing_activities'),
+                        'free_cash_flow': self._safe_get_value(cash_flow, 'net_cash_flow'),
+                    }
+                    formatted_data.append(formatted_item)
+            
+            self.logger.info(f"Successfully fetched {len(formatted_data)} cash flow records for {ticker}")
+            return formatted_data
+            
+        except Exception as e:
+            self.logger.error(f"Error fetching cash flow for {ticker}: {str(e)}")
+            return []
+
+
+class ProviderSelector:
+    """Provider selector that returns data in institutional template format."""
+    
+    def __init__(self, api_keys: dict):
+        """Initialize with API keys dictionary."""
+        self.api_key = api_keys.get('polygon', '')
+        if not self.api_key:
+            raise ValueError("Polygon API key is required")
+            
+        self.adapter = PolygonAdapter(self.api_key)
+        self.logger = logging.getLogger(__name__)
+    
+    def get_income_statement(self, ticker: str, period: str = 'quarterly', limit: int = 12):
+        """Fetch income statement in institutional template format."""
+        self.logger.info(f"Fetching quarterly income statement for {ticker} via Polygon")
+        return self.adapter.get_income_statement(ticker, period, limit)
+    
+    def get_balance_sheet(self, ticker: str, period: str = 'quarterly', limit: int = 12):
+        """Fetch balance sheet via Polygon only."""
+        self.logger.info(f"Fetching balance sheet for {ticker} via Polygon")
+        return self.adapter.get_balance_sheet(ticker, period, limit)
+    
+    def get_cash_flow(self, ticker: str, period: str = 'quarterly', limit: int = 12):
+        """Fetch cash flow via Polygon only."""
+        self.logger.info(f"Fetching cash flow for {ticker} via Polygon")
+        return self.adapter.get_cash_flow(ticker, period, limit)
+    
+    def debug_fields(self, ticker: str, period: str = 'quarterly'):
+        """Debug available fields for a ticker."""
+        self.logger.info(f"Debugging available fields for {ticker}")
+        return self.adapter.debug_available_fields(ticker, period)
