@@ -1,5 +1,5 @@
 """
-Working field discovery adapter that performs discovery AND generates income statements.
+SG&A focused data adapter to specifically test for selling_general_and_administrative_expenses field.
 """
 import logging
 import requests
@@ -8,7 +8,7 @@ from datetime import datetime
 
 
 class PolygonAdapter:
-    """Working Polygon.io API adapter with field discovery and income statement generation."""
+    """Polygon adapter focused on finding SG&A expenses field."""
     
     def __init__(self, api_key: str):
         """Initialize Polygon adapter with API key."""
@@ -44,9 +44,9 @@ class PolygonAdapter:
         except (ValueError, TypeError):
             return float(default)
     
-    def discover_field_names(self, ticker: str) -> Dict:
+    def test_sga_field_variations(self, ticker: str) -> Dict:
         """
-        Comprehensive field discovery to find exact Polygon field names.
+        Test various SG&A field name variations to find the correct one.
         """
         try:
             endpoint = f"/vX/reference/financials"
@@ -56,7 +56,7 @@ class PolygonAdapter:
                 'limit': 1
             }
             
-            self.logger.info(f"=== DISCOVERING FIELD NAMES FOR {ticker} ===")
+            self.logger.info(f"=== TESTING SG&A FIELD VARIATIONS FOR {ticker} ===")
             data = self._make_request(endpoint, params)
             
             if not data or 'results' not in data or len(data['results']) == 0:
@@ -71,114 +71,81 @@ class PolygonAdapter:
             income_stmt = result['financials']['income_statement']
             period_date = result.get('end_date', 'Unknown')
             
+            # Test specific SG&A field variations
+            sga_field_variations = [
+                'selling_general_and_administrative_expenses',
+                'selling_general_administrative_expenses', 
+                'sg_a_expenses',
+                'sga_expenses',
+                'selling_and_administrative_expenses',
+                'general_and_administrative_expenses',
+                'selling_general_admin_expenses',
+                'sales_general_administrative_expenses',
+                'selling_administrative_expenses'
+            ]
+            
             self.logger.info(f"Period: {period_date}")
-            self.logger.info(f"Total fields available: {len(income_stmt)}")
+            self.logger.info(f"Testing {len(sga_field_variations)} SG&A field variations...")
             
-            # Show ALL available fields with their values
-            self.logger.info("\n=== ALL AVAILABLE FIELDS ===")
-            field_analysis = {}
+            found_fields = {}
             
-            for field_name in sorted(income_stmt.keys()):
-                value = self._safe_get_value(income_stmt, field_name)
-                field_analysis[field_name] = value
-                
-                # Format for display
-                if value != 0:
-                    if abs(value) >= 1000000000:
-                        formatted_value = f"${value/1000000000:.2f}B"
-                    elif abs(value) >= 1000000:
-                        formatted_value = f"${value/1000000:.1f}M"
-                    else:
-                        formatted_value = f"${value:,.0f}"
-                else:
-                    formatted_value = "$0"
-                
-                self.logger.info(f"  '{field_name}': {formatted_value}")
-            
-            # Look for Sales & Marketing variations
-            self.logger.info("\n=== SEARCHING FOR SALES & MARKETING FIELD ===")
-            sm_candidates = []
-            sm_keywords = ['sales', 'marketing', 'selling']
-            
-            for field_name in income_stmt.keys():
-                field_lower = field_name.lower()
-                if any(keyword in field_lower for keyword in sm_keywords):
+            # Test each variation
+            for field_name in sga_field_variations:
+                if field_name in income_stmt:
                     value = self._safe_get_value(income_stmt, field_name)
-                    sm_candidates.append((field_name, value))
-                    self.logger.info(f"  CANDIDATE: '{field_name}' = ${value/1000000:.1f}M")
-            
-            # Look for G&A variations  
-            self.logger.info("\n=== SEARCHING FOR GENERAL & ADMINISTRATIVE FIELD ===")
-            ga_candidates = []
-            ga_keywords = ['general', 'administrative', 'admin']
-            
-            for field_name in income_stmt.keys():
-                field_lower = field_name.lower()
-                if any(keyword in field_lower for keyword in ga_keywords):
-                    value = self._safe_get_value(income_stmt, field_name)
-                    ga_candidates.append((field_name, value))
-                    self.logger.info(f"  CANDIDATE: '{field_name}' = ${value/1000000:.1f}M")
-            
-            # Look for combined SG&A fields
-            self.logger.info("\n=== SEARCHING FOR COMBINED SG&A FIELDS ===")
-            sga_candidates = []
-            sga_keywords = ['selling_general', 'sg_a', 'sga', 'selling_and_administrative']
-            
-            for field_name in income_stmt.keys():
-                field_lower = field_name.lower()
-                if any(keyword in field_lower for keyword in sga_keywords):
-                    value = self._safe_get_value(income_stmt, field_name)
-                    sga_candidates.append((field_name, value))
-                    self.logger.info(f"  CANDIDATE: '{field_name}' = ${value/1000000:.1f}M")
-            
-            # Analysis summary
-            self.logger.info("\n=== ANALYSIS SUMMARY ===")
-            if sm_candidates:
-                self.logger.info(f"Found {len(sm_candidates)} Sales & Marketing candidates")
-                for field_name, value in sm_candidates:
-                    # Check if close to expected MSFT value of ~$6,212M
-                    if 6000 <= value/1000000 <= 7000:
-                        self.logger.info(f"  ✅ LIKELY MATCH: '{field_name}' = ${value/1000000:.0f}M (expected ~6,212M)")
-            else:
-                self.logger.info("❌ No Sales & Marketing candidates found")
-            
-            if ga_candidates:
-                self.logger.info(f"Found {len(ga_candidates)} General & Administrative candidates")
-                for field_name, value in ga_candidates:
-                    # Check if close to expected MSFT value of ~$1,737M
-                    if 1500 <= value/1000000 <= 2000:
-                        self.logger.info(f"  ✅ LIKELY MATCH: '{field_name}' = ${value/1000000:.0f}M (expected ~1,737M)")
-            else:
-                self.logger.info("❌ No General & Administrative candidates found")
-            
-            if sga_candidates:
-                self.logger.info(f"Found {len(sga_candidates)} combined SG&A candidates")
-                for field_name, value in sga_candidates:
-                    # Check if close to expected combined value of ~$7,949M
+                    found_fields[field_name] = value
+                    
+                    self.logger.info(f"✅ FOUND: '{field_name}' = ${value/1000000:.1f}M")
+                    
+                    # Check if this matches expected MSFT SG&A (~$7.95B)
                     if 7500 <= value/1000000 <= 8500:
-                        self.logger.info(f"  ✅ LIKELY MATCH: '{field_name}' = ${value/1000000:.0f}M (expected ~7,949M)")
-            else:
-                self.logger.info("❌ No combined SG&A candidates found")
+                        self.logger.info(f"🎯 LIKELY MATCH for SG&A: '{field_name}' = ${value/1000000:.1f}M")
+                else:
+                    self.logger.debug(f"❌ Not found: '{field_name}'")
+            
+            if not found_fields:
+                self.logger.info("❌ No SG&A field variations found")
+                
+                # Show what fields ARE available for reference
+                self.logger.info("Available fields for reference:")
+                for field_name in sorted(income_stmt.keys()):
+                    if any(keyword in field_name.lower() for keyword in ['sell', 'admin', 'general', 'expense', 'operating']):
+                        value = self._safe_get_value(income_stmt, field_name)
+                        self.logger.info(f"  '{field_name}': ${value/1000000:.1f}M")
             
             return {
                 'period': period_date,
-                'all_fields': field_analysis,
-                'sales_marketing_candidates': sm_candidates,
-                'general_admin_candidates': ga_candidates,
-                'combined_sga_candidates': sga_candidates
+                'found_sga_fields': found_fields,
+                'total_variations_tested': len(sga_field_variations),
+                'matches_found': len(found_fields)
             }
             
         except Exception as e:
-            self.logger.error(f"Error discovering fields for {ticker}: {str(e)}")
+            self.logger.error(f"Error testing SG&A fields for {ticker}: {str(e)}")
             import traceback
             self.logger.error(f"Traceback: {traceback.format_exc()}")
             return {}
     
     def get_income_statement(self, ticker: str, period: str = 'quarterly', limit: int = 12) -> Dict:
         """
-        Get income statement WITH field discovery for the first period.
+        Get income statement WITH SG&A field testing and proper mapping.
         """
         try:
+            # First, test SG&A field variations
+            sga_test_results = self.test_sga_field_variations(ticker)
+            
+            # Determine the correct SG&A field name
+            sga_field_name = None
+            if sga_test_results.get('found_sga_fields'):
+                # Use the first found field (they should all be the same)
+                sga_field_name = list(sga_test_results['found_sga_fields'].keys())[0]
+                self.logger.info(f"Using SG&A field: '{sga_field_name}'")
+            else:
+                # Fallback to other_operating_expenses if no SG&A field found
+                sga_field_name = 'other_operating_expenses'
+                self.logger.info(f"No SG&A field found, using fallback: '{sga_field_name}'")
+            
+            # Now fetch the full dataset
             timeframe = 'quarterly' if period.lower() == 'quarterly' else 'annual'
             
             endpoint = f"/vX/reference/financials"
@@ -199,24 +166,16 @@ class PolygonAdapter:
                     'periods': {}
                 }
             
-            # PERFORM FIELD DISCOVERY ON FIRST RESULT
-            if data['results']:
-                self.logger.info("=== PERFORMING FIELD DISCOVERY ===")
-                discovery_results = self.discover_field_names(ticker)
-                
-                # Determine the best field mappings from discovery
-                field_mappings = self._determine_field_mappings(discovery_results)
-                self.logger.info(f"Determined field mappings: {field_mappings}")
-            
             # Initialize the result
             result = {
                 'ticker': ticker.upper(),
                 'company_name': ticker.upper(),
                 'periods': {},
-                'field_discovery': discovery_results if 'discovery_results' in locals() else {}
+                'sga_field_discovery': sga_test_results,
+                'sga_field_used': sga_field_name
             }
             
-            # Process each period using discovered field mappings
+            # Process each period
             for api_result in data.get('results', []):
                 if 'financials' in api_result and 'income_statement' in api_result['financials']:
                     income_stmt = api_result['financials']['income_statement']
@@ -225,9 +184,9 @@ class PolygonAdapter:
                     if not period_date:
                         continue
                     
-                    # Create period items using discovered mappings
+                    # Create period items with SG&A mapping
                     period_items = {
-                        # CORE FIELDS (known to work)
+                        # CORE FIELDS (confirmed working)
                         'Revenues': {'value': self._safe_get_value(income_stmt, 'revenues')},
                         'CostOfGoodsSold': {'value': self._safe_get_value(income_stmt, 'cost_of_revenue')},
                         'GrossProfit': {'value': self._safe_get_value(income_stmt, 'gross_profit')},
@@ -239,17 +198,28 @@ class PolygonAdapter:
                         'NetIncomeLoss': {'value': self._safe_get_value(income_stmt, 'net_income_loss')},
                         'WeightedAverageSharesOutstandingDiluted': {'value': self._safe_get_value(income_stmt, 'diluted_average_shares')},
                         
-                        # DISCOVERED FIELDS (using field mappings)
-                        'SalesAndMarketingExpense': {'value': self._safe_get_value(income_stmt, field_mappings.get('sales_marketing', 'missing_field'))},
-                        'GeneralAndAdministrativeExpense': {'value': self._safe_get_value(income_stmt, field_mappings.get('general_admin', 'missing_field'))},
+                        # SG&A FIELD (using discovered field name)
+                        'SalesAndMarketingExpense': {
+                            'value': None,  # Not available separately
+                            'note': 'Combined with G&A in SG&A field'
+                        },
+                        'GeneralAndAdministrativeExpense': {
+                            'value': None,  # Not available separately  
+                            'note': 'Combined with Sales & Marketing in SG&A field'
+                        },
+                        'SellingGeneralAndAdministrativeExpenses': {
+                            'value': self._safe_get_value(income_stmt, sga_field_name),
+                            'source_field': sga_field_name,
+                            'note': 'Combined Sales & Marketing + General & Administrative'
+                        },
                         
                         # OTHER FIELDS
-                        'StockBasedCompensation': {'value': self._safe_get_value(income_stmt, field_mappings.get('stock_compensation', 'missing_field'))},
-                        'InterestExpense': {'value': 0},  # Not available for MSFT
-                        'InterestIncome': {'value': 0},   # Not available for MSFT
+                        'StockBasedCompensation': {'value': 0, 'note': 'Not separately available from Polygon'},
+                        'InterestExpense': {'value': 0, 'note': 'Not separately available from Polygon'},
+                        'InterestIncome': {'value': 0, 'note': 'Not separately available from Polygon'},
                         'OtherExpenses': {'value': self._safe_get_value(income_stmt, 'nonoperating_income_loss')},
-                        'OtherIncome': {'value': 0},      # Not available for MSFT
-                        'DepreciationAndAmortization': {'value': 0},  # Not available for MSFT
+                        'OtherIncome': {'value': 0, 'note': 'Not separately available from Polygon'},
+                        'DepreciationAndAmortization': {'value': 0, 'note': 'Not separately available from Polygon'},
                     }
                     
                     # Add this period to the result
@@ -259,18 +229,26 @@ class PolygonAdapter:
                     
                     # Log the results
                     revenue = period_items['Revenues']['value']
-                    sm = period_items['SalesAndMarketingExpense']['value']
-                    ga = period_items['GeneralAndAdministrativeExpense']['value']
+                    sga = period_items['SellingGeneralAndAdministrativeExpenses']['value']
+                    rd = period_items['ResearchAndDevelopmentExpense']['value']
                     net_income = period_items['NetIncomeLoss']['value']
                     
                     self.logger.info(f"PROCESSED {period_date}:")
                     self.logger.info(f"  Revenue: ${revenue/1000000:.0f}M")
-                    self.logger.info(f"  Sales & Marketing: ${sm/1000000:.0f}M")
-                    self.logger.info(f"  G&A: ${ga/1000000:.0f}M")
+                    self.logger.info(f"  SG&A ({sga_field_name}): ${sga/1000000:.0f}M")
+                    self.logger.info(f"  R&D: ${rd/1000000:.0f}M")
                     self.logger.info(f"  Net Income: ${net_income/1000000:.0f}M")
+                    
+                    # Verify against expected MSFT numbers for Q1 2025
+                    if period_date == '2025-03-31':
+                        expected_sga = 7949  # S&M $6,212M + G&A $1,737M
+                        if abs(sga/1000000 - expected_sga) < 100:  # Within $100M
+                            self.logger.info(f"✅ SG&A VERIFICATION: ${sga/1000000:.0f}M matches expected ~${expected_sga}M")
+                        else:
+                            self.logger.warning(f"⚠️  SG&A VERIFICATION: ${sga/1000000:.0f}M differs from expected ~${expected_sga}M")
             
             periods_count = len(result['periods'])
-            self.logger.info(f"Successfully processed {periods_count} periods for {ticker} with field discovery")
+            self.logger.info(f"Successfully processed {periods_count} periods for {ticker} with SG&A field testing")
             
             return result
             
@@ -284,54 +262,17 @@ class PolygonAdapter:
                 'periods': {}
             }
     
-    def _determine_field_mappings(self, discovery_results: Dict) -> Dict:
-        """
-        Determine the best field mappings based on discovery results.
-        """
-        mappings = {}
-        
-        # Sales & Marketing mapping
-        sm_candidates = discovery_results.get('sales_marketing_candidates', [])
-        for field_name, value in sm_candidates:
-            # Look for field that's close to expected MSFT value (~$6,212M)
-            if 6000 <= value/1000000 <= 7000:
-                mappings['sales_marketing'] = field_name
-                self.logger.info(f"Mapped Sales & Marketing to: {field_name}")
-                break
-        
-        # General & Administrative mapping
-        ga_candidates = discovery_results.get('general_admin_candidates', [])
-        for field_name, value in ga_candidates:
-            # Look for field that's close to expected MSFT value (~$1,737M)
-            if 1500 <= value/1000000 <= 2000:
-                mappings['general_admin'] = field_name
-                self.logger.info(f"Mapped General & Administrative to: {field_name}")
-                break
-        
-        # Combined SG&A mapping (if individual fields not found)
-        if 'sales_marketing' not in mappings or 'general_admin' not in mappings:
-            sga_candidates = discovery_results.get('combined_sga_candidates', [])
-            for field_name, value in sga_candidates:
-                if 7500 <= value/1000000 <= 8500:
-                    mappings['combined_sga'] = field_name
-                    self.logger.info(f"Mapped Combined SG&A to: {field_name}")
-                    break
-        
-        return mappings
-    
     def get_balance_sheet(self, ticker: str, period: str = 'quarterly', limit: int = 12) -> List[Dict]:
         """Fetch balance sheet data from Polygon."""
-        # Keep existing implementation
         return []
     
     def get_cash_flow(self, ticker: str, period: str = 'quarterly', limit: int = 12) -> List[Dict]:
         """Fetch cash flow statement data from Polygon."""
-        # Keep existing implementation
         return []
 
 
 class ProviderSelector:
-    """Provider selector with working field discovery."""
+    """Provider selector with SG&A field testing."""
     
     def __init__(self, api_keys: dict):
         """Initialize with API keys dictionary."""
@@ -343,8 +284,8 @@ class ProviderSelector:
         self.logger = logging.getLogger(__name__)
     
     def get_income_statement(self, ticker: str, period: str = 'quarterly', limit: int = 12):
-        """Fetch income statement with field discovery."""
-        self.logger.info(f"Fetching income statement for {ticker} with field discovery")
+        """Fetch income statement with SG&A field testing."""
+        self.logger.info(f"Fetching income statement for {ticker} with SG&A field testing")
         return self.adapter.get_income_statement(ticker, period, limit)
     
     def get_balance_sheet(self, ticker: str, period: str = 'quarterly', limit: int = 12):
@@ -357,7 +298,6 @@ class ProviderSelector:
         self.logger.info(f"Fetching cash flow for {ticker} via Polygon")
         return self.adapter.get_cash_flow(ticker, period, limit)
     
-    def discover_fields(self, ticker: str):
-        """Discover available field names for a ticker."""
-        self.logger.info(f"Discovering available fields for {ticker}")
-        return self.adapter.discover_field_names(ticker)
+    def test_sga_fields(self, ticker: str):
+        """Test SG&A field variations for a ticker."""
+        return self.adapter.test_sga_field_variations(ticker)
