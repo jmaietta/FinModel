@@ -3,6 +3,7 @@ Enhanced Detailed Excel template module for institutional investors.
 
 This module provides a specialized Excel template for institutional investors
 with comprehensive income statement line items and three years of quarterly history.
+Updated to work with combined SG&A from Polygon data.
 """
 import os
 import logging
@@ -26,10 +27,12 @@ class InstitutionalDetailedTemplate:
         self.subheader_font = Font(name='Arial', size=11, bold=True)
         self.normal_font = Font(name='Arial', size=10)
         self.number_font = Font(name='Arial', size=10)
+        self.note_font = Font(name='Arial', size=9, italic=True, color='666666')
         
         self.header_fill = PatternFill(start_color='0066CC', end_color='0066CC', fill_type='solid')
         self.subheader_fill = PatternFill(start_color='E0E0E0', end_color='E0E0E0', fill_type='solid')
         self.alternate_row_fill = PatternFill(start_color='F5F5F5', end_color='F5F5F5', fill_type='solid')
+        self.na_fill = PatternFill(start_color='FFEEEE', end_color='FFEEEE', fill_type='solid')
         
         self.center_align = Alignment(horizontal='center', vertical='center')
         self.right_align = Alignment(horizontal='right', vertical='center')
@@ -42,14 +45,15 @@ class InstitutionalDetailedTemplate:
             bottom=Side(style='thin', color='000000')
         )
         
-        # Define institutional line items in order
+        # Define institutional line items in order - updated for combined SG&A
         self.institutional_line_items = [
             'Revenues',
             'CostOfGoodsSold',
             'GrossProfit',
-            'SalesAndMarketingExpense',
             'ResearchAndDevelopmentExpense',
-            'GeneralAndAdministrativeExpense',
+            'SellingGeneralAndAdministrativeExpenses',  # Combined SG&A
+            'SalesAndMarketingExpense',  # Will show as N/A with note
+            'GeneralAndAdministrativeExpense',  # Will show as N/A with note
             'StockBasedCompensation',
             'OperatingExpenses',
             'OperatingIncomeLoss',
@@ -64,26 +68,38 @@ class InstitutionalDetailedTemplate:
             'WeightedAverageSharesOutstandingDiluted'
         ]
         
-        # Map item keys to display names
+        # Map item keys to display names with notes for unavailable items
         self.item_display_names = {
             'Revenues': 'Total Revenue',
             'CostOfGoodsSold': 'Cost of Goods Sold',
             'GrossProfit': 'Gross Profit',
-            'SalesAndMarketingExpense': 'Sales & Marketing',
             'ResearchAndDevelopmentExpense': 'Research & Development',
-            'GeneralAndAdministrativeExpense': 'General & Administrative',
-            'StockBasedCompensation': 'Stock-Based Compensation',
+            'SellingGeneralAndAdministrativeExpenses': 'Sales, General & Administrative (Combined)',
+            'SalesAndMarketingExpense': 'Sales & Marketing (Separate) *',
+            'GeneralAndAdministrativeExpense': 'General & Administrative (Separate) *',
+            'StockBasedCompensation': 'Stock-Based Compensation *',
             'OperatingExpenses': 'Total Operating Expenses',
             'OperatingIncomeLoss': 'Operating Income',
-            'InterestExpense': 'Interest Expense',
-            'InterestIncome': 'Interest Income',
+            'InterestExpense': 'Interest Expense *',
+            'InterestIncome': 'Interest Income *',
             'OtherExpenses': 'Other Expenses',
-            'OtherIncome': 'Other Income',
-            'DepreciationAndAmortization': 'Depreciation & Amortization',
+            'OtherIncome': 'Other Income *',
+            'DepreciationAndAmortization': 'Depreciation & Amortization *',
             'IncomeLossBeforeIncomeTaxes': 'Pre-Tax Income',
             'IncomeTaxExpenseBenefit': 'Income Tax Expense',
             'NetIncomeLoss': 'Net Income',
             'WeightedAverageSharesOutstandingDiluted': 'Fully-Diluted Shares Outstanding'
+        }
+        
+        # Items that are unavailable and should be highlighted
+        self.unavailable_items = {
+            'SalesAndMarketingExpense',
+            'GeneralAndAdministrativeExpense', 
+            'StockBasedCompensation',
+            'InterestExpense',
+            'InterestIncome',
+            'OtherIncome',
+            'DepreciationAndAmortization'
         }
     
     def create_template(self, income_statement: Dict, output_path: str) -> str:
@@ -98,15 +114,19 @@ class InstitutionalDetailedTemplate:
         """
         wb = openpyxl.Workbook()
         
-        # Create only the Income Statement sheet
+        # Create Income Statement sheet
         income_stmt_sheet = wb.active
         income_stmt_sheet.title = "Income Statement"
         
         # Create income statement sheet with detailed line items
         self._create_income_statement_sheet(income_stmt_sheet, income_statement)
         
+        # Create Data Notes sheet
+        notes_sheet = wb.create_sheet("Data Notes")
+        self._create_data_notes_sheet(notes_sheet, income_statement)
+        
         # Adjust column widths
-        income_stmt_sheet.column_dimensions['A'].width = 30
+        income_stmt_sheet.column_dimensions['A'].width = 35
         for col in range(2, 15):
             income_stmt_sheet.column_dimensions[get_column_letter(col)].width = 15
         
@@ -132,28 +152,34 @@ class InstitutionalDetailedTemplate:
         sheet.merge_cells('A1:N1')
         sheet['A1'].alignment = Alignment(horizontal='center')
         
+        # Add data quality note
+        sheet['A2'] = "* Line items marked with asterisk (*) are not separately disclosed by data provider"
+        sheet['A2'].font = self.note_font
+        sheet.merge_cells('A2:N2')
+        sheet['A2'].alignment = Alignment(horizontal='center')
+        
         # Extract periods and sort by date (most recent first)
         periods = income_statement.get('periods', {})
         sorted_periods = sorted(periods.items(), key=lambda x: x[0], reverse=True)
         
         if not sorted_periods:
-            sheet['A3'] = "No data available"
+            sheet['A4'] = "No data available"
             return
         
         # Limit to 12 quarters (3 years)
         sorted_periods = sorted_periods[:12]
         
         # Add headers
-        sheet['A3'] = "Line Item"
-        sheet['A3'].font = self.header_font
-        sheet['A3'].fill = self.header_fill
-        sheet['A3'].alignment = self.center_align
-        sheet['A3'].border = self.border
+        sheet['A4'] = "Line Item"
+        sheet['A4'].font = self.header_font
+        sheet['A4'].fill = self.header_fill
+        sheet['A4'].alignment = self.center_align
+        sheet['A4'].border = self.border
         
         # Add period headers
         for i, (period_key, _) in enumerate(sorted_periods):
             col = i + 2
-            cell = sheet.cell(row=3, column=col)
+            cell = sheet.cell(row=4, column=col)
             cell.value = period_key
             cell.font = self.header_font
             cell.fill = self.header_fill
@@ -162,7 +188,7 @@ class InstitutionalDetailedTemplate:
         
         # Add line items
         for i, item_key in enumerate(self.institutional_line_items):
-            row = i + 4
+            row = i + 5
             
             # Item name
             cell = sheet.cell(row=row, column=1)
@@ -181,7 +207,7 @@ class InstitutionalDetailedTemplate:
                 cell = sheet.cell(row=row, column=col)
                 
                 items = period_data.get('items', {})
-                if item_key in items:
+                if item_key in items and items[item_key].get('value') is not None:
                     value = items[item_key].get('value', 0)
                     cell.value = value
                     
@@ -190,16 +216,23 @@ class InstitutionalDetailedTemplate:
                         cell.number_format = '#,##0'  # No currency for shares
                     else:
                         cell.number_format = '$#,##0,,"M"'  # Display in millions
+                    
+                    cell.font = self.number_font
                 else:
                     cell.value = "N/A"
+                    cell.font = self.note_font
+                    
+                    # Highlight unavailable items with light red background
+                    if item_key in self.unavailable_items:
+                        cell.fill = self.na_fill
                 
-                cell.font = self.number_font
                 cell.alignment = self.right_align
                 cell.border = self.border
                 
-                # Apply alternating row fill
-                if i % 2 == 1:
-                    cell.fill = self.alternate_row_fill
+                # Apply alternating row fill for available items
+                if i % 2 == 1 and (item_key not in items or items[item_key].get('value') is None):
+                    if item_key not in self.unavailable_items:
+                        cell.fill = self.alternate_row_fill
         
         # Add calculated margins
         margin_items = [
@@ -208,7 +241,7 @@ class InstitutionalDetailedTemplate:
             ("Net Margin", 'NetIncomeLoss', 'Revenues')
         ]
         
-        start_row = len(self.institutional_line_items) + 5
+        start_row = len(self.institutional_line_items) + 6
         
         # Add margin header
         cell = sheet.cell(row=start_row, column=1)
@@ -247,6 +280,8 @@ class InstitutionalDetailedTemplate:
                 items = period_data.get('items', {})
                 if (numerator_key in items and 
                     denominator_key in items and
+                    items[numerator_key].get('value') is not None and
+                    items[denominator_key].get('value') is not None and
                     items[denominator_key].get('value', 0) != 0):
                     
                     numerator = items[numerator_key].get('value', 0)
@@ -254,10 +289,11 @@ class InstitutionalDetailedTemplate:
                     margin = numerator / denominator * 100
                     cell.value = margin
                     cell.number_format = '0.00"%"'
+                    cell.font = self.number_font
                 else:
                     cell.value = "N/A"
+                    cell.font = self.note_font
                 
-                cell.font = self.number_font
                 cell.alignment = self.right_align
                 cell.border = self.border
                 
@@ -265,612 +301,104 @@ class InstitutionalDetailedTemplate:
                 if i % 2 == 0:
                     cell.fill = self.alternate_row_fill
     
-    def _create_quarterly_analysis_sheet(self, sheet, income_statement: Dict):
-        """Create quarterly analysis sheet with QoQ growth rates.
+    def _create_data_notes_sheet(self, sheet, income_statement: Dict):
+        """Create data notes sheet explaining data limitations.
         
         Args:
             sheet: Excel worksheet to populate.
             income_statement: Income statement data.
         """
         # Add title
-        sheet['A1'] = f"{income_statement.get('company_name', '')} ({income_statement.get('ticker', '')}) - Quarterly Analysis"
+        sheet['A1'] = f"{income_statement.get('company_name', '')} ({income_statement.get('ticker', '')}) - Data Source Notes"
         sheet['A1'].font = Font(name='Arial', size=16, bold=True)
-        sheet.merge_cells('A1:N1')
+        sheet.merge_cells('A1:D1')
         sheet['A1'].alignment = Alignment(horizontal='center')
         
-        # Extract periods and sort by date (most recent first)
-        periods = income_statement.get('periods', {})
-        sorted_periods = sorted(periods.items(), key=lambda x: x[0], reverse=True)
+        # Add data source information
+        sheet['A3'] = "Data Source Information"
+        sheet['A3'].font = self.subheader_font
+        sheet['A3'].fill = self.subheader_fill
         
-        if not sorted_periods:
-            sheet['A3'] = "No data available"
-            return
+        # Get data source notes if available
+        data_source_notes = income_statement.get('data_source_notes', {})
+        provider = data_source_notes.get('provider', 'Unknown')
+        data_policy = data_source_notes.get('data_policy', 'N/A')
         
-        # Limit to 12 quarters (3 years)
-        sorted_periods = sorted_periods[:12]
+        sheet['A4'] = f"Primary Data Provider: {provider}"
+        sheet['A5'] = f"Data Policy: {data_policy}"
         
-        # Add headers
-        sheet['A3'] = "Line Item"
-        sheet['A3'].font = self.header_font
-        sheet['A3'].fill = self.header_fill
-        sheet['A3'].alignment = self.center_align
-        sheet['A3'].border = self.border
+        # Add field availability explanation
+        sheet['A7'] = "Field Availability & Limitations"
+        sheet['A7'].font = self.subheader_font
+        sheet['A7'].fill = self.subheader_fill
         
-        # Add period headers for QoQ growth
-        for i in range(len(sorted_periods) - 1):
-            col = i + 2
-            current_period = sorted_periods[i][0]
-            prev_period = sorted_periods[i+1][0]
-            cell = sheet.cell(row=3, column=col)
-            cell.value = f"{current_period} vs {prev_period}"
-            cell.font = self.header_font
-            cell.fill = self.header_fill
-            cell.alignment = self.center_align
-            cell.border = self.border
+        # Available fields
+        sheet['A9'] = "✅ AVAILABLE FIELDS (High Confidence)"
+        sheet['A9'].font = Font(name='Arial', size=11, bold=True, color='006100')
         
-        # Select key metrics for QoQ analysis
-        key_metrics = [
-            'Revenues',
-            'GrossProfit',
-            'OperatingIncomeLoss',
-            'NetIncomeLoss'
+        available_fields = [
+            "• Total Revenue - Direct from provider",
+            "• Cost of Goods Sold - Direct from provider", 
+            "• Gross Profit - Direct from provider",
+            "• Research & Development - Direct from provider",
+            "• Sales, General & Administrative (Combined) - Direct from provider",
+            "• Total Operating Expenses - Direct from provider",
+            "• Operating Income - Direct from provider",
+            "• Pre-Tax Income - Direct from provider",
+            "• Income Tax Expense - Direct from provider",
+            "• Net Income - Direct from provider",
+            "• Fully-Diluted Shares Outstanding - Direct from provider"
         ]
         
-        # Add QoQ growth rates
-        for i, item_key in enumerate(key_metrics):
-            row = i + 4
-            
-            # Item name
-            cell = sheet.cell(row=row, column=1)
-            cell.value = self.item_display_names.get(item_key, item_key)
-            cell.font = self.normal_font
-            cell.alignment = self.left_align
-            cell.border = self.border
-            
-            # Apply alternating row fill
-            if i % 2 == 1:
-                cell.fill = self.alternate_row_fill
-            
-            # Calculate QoQ growth for each period
-            for j in range(len(sorted_periods) - 1):
-                col = j + 2
-                cell = sheet.cell(row=row, column=col)
-                
-                current_period_data = sorted_periods[j][1]
-                prev_period_data = sorted_periods[j+1][1]
-                
-                current_items = current_period_data.get('items', {})
-                prev_items = prev_period_data.get('items', {})
-                
-                if (item_key in current_items and 
-                    item_key in prev_items and
-                    prev_items[item_key].get('value', 0) != 0):
-                    
-                    current_value = current_items[item_key].get('value', 0)
-                    prev_value = prev_items[item_key].get('value', 0)
-                    growth = (current_value - prev_value) / prev_value * 100
-                    cell.value = growth
-                    cell.number_format = '0.00"%"'
-                    
-                    # Color code: green for positive, red for negative
-                    if growth > 0:
-                        cell.font = Font(name='Arial', size=10, color='006100')
-                    elif growth < 0:
-                        cell.font = Font(name='Arial', size=10, color='9C0006')
-                    else:
-                        cell.font = self.number_font
-                else:
-                    cell.value = "N/A"
-                    cell.font = self.number_font
-                
-                cell.alignment = self.right_align
-                cell.border = self.border
-                
-                # Apply alternating row fill
-                if i % 2 == 1:
-                    cell.fill = self.alternate_row_fill
-    
-    def _create_annual_analysis_sheet(self, sheet, income_statement: Dict):
-        """Create annual analysis sheet with YoY growth rates.
+        for i, field in enumerate(available_fields):
+            sheet[f'A{10 + i}'] = field
+            sheet[f'A{10 + i}'].font = Font(name='Arial', size=10, color='006100')
         
-        Args:
-            sheet: Excel worksheet to populate.
-            income_statement: Income statement data.
-        """
-        # Add title
-        sheet['A1'] = f"{income_statement.get('company_name', '')} ({income_statement.get('ticker', '')}) - Annual Analysis"
-        sheet['A1'].font = Font(name='Arial', size=16, bold=True)
-        sheet.merge_cells('A1:N1')
-        sheet['A1'].alignment = Alignment(horizontal='center')
+        # Unavailable fields
+        unavailable_start_row = 10 + len(available_fields) + 2
+        sheet[f'A{unavailable_start_row}'] = "❌ UNAVAILABLE FIELDS (Not Separately Disclosed)"
+        sheet[f'A{unavailable_start_row}'].font = Font(name='Arial', size=11, bold=True, color='9C0006')
         
-        # Extract periods and sort by date (most recent first)
-        periods = income_statement.get('periods', {})
-        sorted_periods = sorted(periods.items(), key=lambda x: x[0], reverse=True)
-        
-        if not sorted_periods or len(sorted_periods) < 4:
-            sheet['A3'] = "Insufficient data for annual analysis (need at least 4 quarters)"
-            return
-        
-        # Limit to 12 quarters (3 years)
-        sorted_periods = sorted_periods[:12]
-        
-        # Group periods by year
-        years = {}
-        for period_key, period_data in sorted_periods:
-            year = period_key.split('-')[0]
-            if year not in years:
-                years[year] = []
-            years[year].append((period_key, period_data))
-        
-        # Sort years in descending order
-        sorted_years = sorted(years.items(), key=lambda x: x[0], reverse=True)
-        
-        # Add headers
-        sheet['A3'] = "Line Item"
-        sheet['A3'].font = self.header_font
-        sheet['A3'].fill = self.header_fill
-        sheet['A3'].alignment = self.center_align
-        sheet['A3'].border = self.border
-        
-        # Add year headers
-        for i, (year, _) in enumerate(sorted_years):
-            col = i + 2
-            cell = sheet.cell(row=3, column=col)
-            cell.value = year
-            cell.font = self.header_font
-            cell.fill = self.header_fill
-            cell.alignment = self.center_align
-            cell.border = self.border
-        
-        # Add YoY growth headers
-        for i in range(len(sorted_years) - 1):
-            col = i + 2 + len(sorted_years)
-            current_year = sorted_years[i][0]
-            prev_year = sorted_years[i+1][0]
-            cell = sheet.cell(row=3, column=col)
-            cell.value = f"{current_year} vs {prev_year}"
-            cell.font = self.header_font
-            cell.fill = self.header_fill
-            cell.alignment = self.center_align
-            cell.border = self.border
-        
-        # Select key metrics for annual analysis
-        key_metrics = [
-            'Revenues',
-            'GrossProfit',
-            'OperatingIncomeLoss',
-            'NetIncomeLoss'
+        unavailable_fields = [
+            "• Sales & Marketing (Separate) - Combined in SG&A total",
+            "• General & Administrative (Separate) - Combined in SG&A total",
+            "• Stock-Based Compensation - Not separately disclosed",
+            "• Interest Expense - Not separately disclosed",
+            "• Interest Income - Not separately disclosed", 
+            "• Other Income - Not separately disclosed",
+            "• Depreciation & Amortization - Not separately disclosed"
         ]
         
-        # Add annual values and YoY growth rates
-        for i, item_key in enumerate(key_metrics):
-            row = i + 4
-            
-            # Item name
-            cell = sheet.cell(row=row, column=1)
-            cell.value = self.item_display_names.get(item_key, item_key)
-            cell.font = self.normal_font
-            cell.alignment = self.left_align
-            cell.border = self.border
-            
-            # Apply alternating row fill
-            if i % 2 == 1:
-                cell.fill = self.alternate_row_fill
-            
-            # Calculate annual values for each year
-            annual_values = {}
-            for j, (year, periods) in enumerate(sorted_years):
-                col = j + 2
-                cell = sheet.cell(row=row, column=col)
-                
-                # Sum values for all periods in the year
-                total = 0
-                count = 0
-                for _, period_data in periods:
-                    items = period_data.get('items', {})
-                    if item_key in items:
-                        total += items[item_key].get('value', 0)
-                        count += 1
-                
-                if count > 0:
-                    annual_values[year] = total
-                    cell.value = total
-                    cell.number_format = '$#,##0,,"M"'  # Display in millions
-                else:
-                    cell.value = "N/A"
-                
-                cell.font = self.number_font
-                cell.alignment = self.right_align
-                cell.border = self.border
-                
-                # Apply alternating row fill
-                if i % 2 == 1:
-                    cell.fill = self.alternate_row_fill
-            
-            # Calculate YoY growth rates
-            for j in range(len(sorted_years) - 1):
-                col = j + 2 + len(sorted_years)
-                cell = sheet.cell(row=row, column=col)
-                
-                current_year = sorted_years[j][0]
-                prev_year = sorted_years[j+1][0]
-                
-                if (current_year in annual_values and 
-                    prev_year in annual_values and
-                    annual_values[prev_year] != 0):
-                    
-                    current_value = annual_values[current_year]
-                    prev_value = annual_values[prev_year]
-                    growth = (current_value - prev_value) / prev_value * 100
-                    cell.value = growth
-                    cell.number_format = '0.00"%"'
-                    
-                    # Color code: green for positive, red for negative
-                    if growth > 0:
-                        cell.font = Font(name='Arial', size=10, color='006100')
-                    elif growth < 0:
-                        cell.font = Font(name='Arial', size=10, color='9C0006')
-                    else:
-                        cell.font = self.number_font
-                else:
-                    cell.value = "N/A"
-                    cell.font = self.number_font
-                
-                cell.alignment = self.right_align
-                cell.border = self.border
-                
-                # Apply alternating row fill
-                if i % 2 == 1:
-                    cell.fill = self.alternate_row_fill
-    
-    def _create_charts_sheet(self, sheet, income_statement: Dict):
-        """Create charts sheet with visualizations of financial data.
+        for i, field in enumerate(unavailable_fields):
+            row = unavailable_start_row + 1 + i
+            sheet[f'A{row}'] = field
+            sheet[f'A{row}'].font = Font(name='Arial', size=10, color='9C0006')
         
-        Args:
-            sheet: Excel worksheet to populate.
-            income_statement: Income statement data.
-        """
-        # Add title
-        sheet['A1'] = f"{income_statement.get('company_name', '')} ({income_statement.get('ticker', '')}) - Financial Charts"
-        sheet['A1'].font = Font(name='Arial', size=16, bold=True)
-        sheet.merge_cells('A1:I1')
-        sheet['A1'].alignment = Alignment(horizontal='center')
+        # Professional approach explanation
+        explanation_start_row = unavailable_start_row + len(unavailable_fields) + 3
+        sheet[f'A{explanation_start_row}'] = "Professional Data Quality Approach"
+        sheet[f'A{explanation_start_row}'].font = self.subheader_font
+        sheet[f'A{explanation_start_row}'].fill = self.subheader_fill
         
-        # Extract periods and sort by date (oldest first for charts)
-        periods = income_statement.get('periods', {})
-        sorted_periods = sorted(periods.items(), key=lambda x: x[0])
-        
-        if not sorted_periods:
-            sheet['A3'] = "No data available for charts"
-            return
-        
-        # Limit to 12 quarters (3 years)
-        if len(sorted_periods) > 12:
-            sorted_periods = sorted_periods[-12:]
-        
-        # Create data table for charts
-        sheet['A3'] = "Period"
-        sheet['B3'] = "Revenue"
-        sheet['C3'] = "Gross Profit"
-        sheet['D3'] = "Operating Income"
-        sheet['E3'] = "Net Income"
-        sheet['F3'] = "Gross Margin"
-        sheet['G3'] = "Operating Margin"
-        sheet['H3'] = "Net Margin"
-        
-        # Style headers
-        for col in range(1, 9):
-            cell = sheet.cell(row=3, column=col)
-            cell.font = self.header_font
-            cell.fill = self.header_fill
-            cell.alignment = self.center_align
-            cell.border = self.border
-        
-        # Add data
-        for i, (period_key, period_data) in enumerate(sorted_periods):
-            row = i + 4
-            items = period_data.get('items', {})
-            
-            # Period
-            cell = sheet.cell(row=row, column=1)
-            cell.value = period_key
-            cell.font = self.normal_font
-            cell.alignment = self.center_align
-            cell.border = self.border
-            
-            # Revenue
-            cell = sheet.cell(row=row, column=2)
-            if 'Revenues' in items:
-                cell.value = items['Revenues'].get('value', 0) / 1000000  # Convert to millions
-            else:
-                cell.value = None
-            cell.font = self.number_font
-            cell.alignment = self.right_align
-            cell.border = self.border
-            
-            # Gross Profit
-            cell = sheet.cell(row=row, column=3)
-            if 'GrossProfit' in items:
-                cell.value = items['GrossProfit'].get('value', 0) / 1000000  # Convert to millions
-            else:
-                cell.value = None
-            cell.font = self.number_font
-            cell.alignment = self.right_align
-            cell.border = self.border
-            
-            # Operating Income
-            cell = sheet.cell(row=row, column=4)
-            if 'OperatingIncomeLoss' in items:
-                cell.value = items['OperatingIncomeLoss'].get('value', 0) / 1000000  # Convert to millions
-            else:
-                cell.value = None
-            cell.font = self.number_font
-            cell.alignment = self.right_align
-            cell.border = self.border
-            
-            # Net Income
-            cell = sheet.cell(row=row, column=5)
-            if 'NetIncomeLoss' in items:
-                cell.value = items['NetIncomeLoss'].get('value', 0) / 1000000  # Convert to millions
-            else:
-                cell.value = None
-            cell.font = self.number_font
-            cell.alignment = self.right_align
-            cell.border = self.border
-            
-            # Gross Margin
-            cell = sheet.cell(row=row, column=6)
-            if 'GrossProfit' in items and 'Revenues' in items and items['Revenues'].get('value', 0) != 0:
-                gross_profit = items['GrossProfit'].get('value', 0)
-                revenue = items['Revenues'].get('value', 0)
-                cell.value = gross_profit / revenue * 100
-            else:
-                cell.value = None
-            cell.font = self.number_font
-            cell.alignment = self.right_align
-            cell.border = self.border
-            
-            # Operating Margin
-            cell = sheet.cell(row=row, column=7)
-            if 'OperatingIncomeLoss' in items and 'Revenues' in items and items['Revenues'].get('value', 0) != 0:
-                operating_income = items['OperatingIncomeLoss'].get('value', 0)
-                revenue = items['Revenues'].get('value', 0)
-                cell.value = operating_income / revenue * 100
-            else:
-                cell.value = None
-            cell.font = self.number_font
-            cell.alignment = self.right_align
-            cell.border = self.border
-            
-            # Net Margin
-            cell = sheet.cell(row=row, column=8)
-            if 'NetIncomeLoss' in items and 'Revenues' in items and items['Revenues'].get('value', 0) != 0:
-                net_income = items['NetIncomeLoss'].get('value', 0)
-                revenue = items['Revenues'].get('value', 0)
-                cell.value = net_income / revenue * 100
-            else:
-                cell.value = None
-            cell.font = self.number_font
-            cell.alignment = self.right_align
-            cell.border = self.border
-        
-        # Create Revenue and Profit chart
-        self._create_financial_metrics_chart(
-            sheet, 
-            title="Revenue and Profits",
-            categories_range=f"A4:A{3+len(sorted_periods)}",
-            data_ranges=[
-                f"B4:B{3+len(sorted_periods)}",
-                f"C4:C{3+len(sorted_periods)}",
-                f"D4:D{3+len(sorted_periods)}",
-                f"E4:E{3+len(sorted_periods)}"
-            ],
-            series_names=["Revenue", "Gross Profit", "Operating Income", "Net Income"],
-            position="A15"
-        )
-        
-        # Create Margins chart
-        self._create_financial_metrics_chart(
-            sheet, 
-            title="Profit Margins",
-            categories_range=f"A4:A{3+len(sorted_periods)}",
-            data_ranges=[
-                f"F4:F{3+len(sorted_periods)}",
-                f"G4:G{3+len(sorted_periods)}",
-                f"H4:H{3+len(sorted_periods)}"
-            ],
-            series_names=["Gross Margin", "Operating Margin", "Net Margin"],
-            position="A30"
-        )
-    
-    def _create_key_metrics_sheet(self, sheet, income_statement: Dict):
-        """Create key metrics sheet with financial ratios and trends.
-        
-        Args:
-            sheet: Excel worksheet to populate.
-            income_statement: Income statement data.
-        """
-        # Add title
-        sheet['A1'] = f"{income_statement.get('company_name', '')} ({income_statement.get('ticker', '')}) - Key Metrics"
-        sheet['A1'].font = Font(name='Arial', size=16, bold=True)
-        sheet.merge_cells('A1:E1')
-        sheet['A1'].alignment = Alignment(horizontal='center')
-        
-        # Extract periods and sort by date (most recent first)
-        periods = income_statement.get('periods', {})
-        sorted_periods = sorted(periods.items(), key=lambda x: x[0], reverse=True)
-        
-        if not sorted_periods:
-            sheet['A3'] = "No data available"
-            return
-        
-        # Limit to 12 quarters (3 years)
-        sorted_periods = sorted_periods[:12]
-        
-        # Add headers
-        sheet['A3'] = "Metric"
-        sheet['B3'] = "Most Recent"
-        sheet['C3'] = "YoY Change"
-        sheet['D3'] = "3Y Average"
-        sheet['E3'] = "3Y CAGR"
-        
-        # Style headers
-        for col in range(1, 6):
-            cell = sheet.cell(row=3, column=col)
-            cell.font = self.header_font
-            cell.fill = self.header_fill
-            cell.alignment = self.center_align
-            cell.border = self.border
-        
-        # Get most recent period data
-        most_recent_period = sorted_periods[0][1]
-        most_recent_items = most_recent_period.get('items', {})
-        
-        # Get year-ago period if available
-        year_ago_items = {}
-        if len(sorted_periods) >= 4:  # Assuming quarterly data, this would be 1 year ago
-            year_ago_period = sorted_periods[4][1]
-            year_ago_items = year_ago_period.get('items', {})
-        
-        # Calculate averages
-        avg_items = {}
-        for item_key in ['Revenues', 'GrossProfit', 'OperatingIncomeLoss', 'NetIncomeLoss']:
-            values = []
-            for _, period_data in sorted_periods:  # All available quarters (up to 12)
-                if item_key in period_data.get('items', {}):
-                    values.append(period_data['items'][item_key].get('value', 0))
-            
-            if values:
-                avg_items[item_key] = sum(values) / len(values)
-        
-        # Calculate CAGR (Compound Annual Growth Rate)
-        cagr_items = {}
-        for item_key in ['Revenues', 'GrossProfit', 'OperatingIncomeLoss', 'NetIncomeLoss']:
-            if len(sorted_periods) >= 12:  # Need 3 years of data
-                start_value = sorted_periods[-1][1].get('items', {}).get(item_key, {}).get('value', 0)
-                end_value = sorted_periods[0][1].get('items', {}).get(item_key, {}).get('value', 0)
-                
-                if start_value > 0:
-                    # Calculate CAGR: (End Value / Start Value)^(1/3) - 1
-                    cagr = (end_value / start_value) ** (1/3) - 1
-                    cagr_items[item_key] = cagr * 100  # Convert to percentage
-        
-        # Add key metrics
-        metrics = [
-            ("Revenue", 'Revenues'),
-            ("Gross Profit", 'GrossProfit'),
-            ("Operating Income", 'OperatingIncomeLoss'),
-            ("Net Income", 'NetIncomeLoss')
+        explanation_text = [
+            "This report follows a professional approach to financial data presentation:",
+            "",
+            "1. TRANSPARENCY: We clearly indicate what data is available vs. unavailable",
+            "2. NO FALSE ESTIMATES: We never fabricate or estimate missing data points",
+            "3. COMBINED DISCLOSURES: Where providers combine line items, we present them as combined",
+            "4. CLEAR NOTATION: Unavailable fields are marked with (*) and highlighted",
+            "",
+            "This approach ensures you receive accurate, reliable financial data without",
+            "any misleading estimates or artificial line item breakdowns."
         ]
         
-        for i, (metric_name, metric_key) in enumerate(metrics):
-            row = i + 4
-            
-            # Metric name
-            cell = sheet.cell(row=row, column=1)
-            cell.value = metric_name
-            cell.font = self.normal_font
-            cell.alignment = self.left_align
-            cell.border = self.border
-            
-            # Most recent value
-            cell = sheet.cell(row=row, column=2)
-            if metric_key in most_recent_items:
-                value = most_recent_items[metric_key].get('value', 0)
-                cell.value = value / 1000000  # Convert to millions
-                cell.number_format = '$#,##0.00 "M"'
+        for i, text in enumerate(explanation_text):
+            row = explanation_start_row + 2 + i
+            sheet[f'A{row}'] = text
+            if text.startswith(('1.', '2.', '3.', '4.')):
+                sheet[f'A{row}'].font = Font(name='Arial', size=10, bold=True)
             else:
-                cell.value = "N/A"
-            cell.font = self.number_font
-            cell.alignment = self.right_align
-            cell.border = self.border
-            
-            # YoY change
-            cell = sheet.cell(row=row, column=3)
-            if metric_key in most_recent_items and metric_key in year_ago_items:
-                current = most_recent_items[metric_key].get('value', 0)
-                year_ago = year_ago_items[metric_key].get('value', 0)
-                if year_ago != 0:
-                    change = (current - year_ago) / year_ago * 100
-                    cell.value = change
-                    cell.number_format = '0.00"%"'
-                    
-                    # Color code: green for positive, red for negative
-                    if change > 0:
-                        cell.font = Font(name='Arial', size=10, color='006100')
-                    elif change < 0:
-                        cell.font = Font(name='Arial', size=10, color='9C0006')
-                else:
-                    cell.value = "N/A"
-                    cell.font = self.number_font
-            else:
-                cell.value = "N/A"
-                cell.font = self.number_font
-            cell.alignment = self.right_align
-            cell.border = self.border
-            
-            # 3Y average
-            cell = sheet.cell(row=row, column=4)
-            if metric_key in avg_items:
-                cell.value = avg_items[metric_key] / 1000000  # Convert to millions
-                cell.number_format = '$#,##0.00 "M"'
-            else:
-                cell.value = "N/A"
-            cell.font = self.number_font
-            cell.alignment = self.right_align
-            cell.border = self.border
-            
-            # 3Y CAGR
-            cell = sheet.cell(row=row, column=5)
-            if metric_key in cagr_items:
-                cell.value = cagr_items[metric_key]
-                cell.number_format = '0.00"%"'
-                
-                # Color code: green for positive, red for negative
-                if cagr_items[metric_key] > 0:
-                    cell.font = Font(name='Arial', size=10, color='006100')
-                elif cagr_items[metric_key] < 0:
-                    cell.font = Font(name='Arial', size=10, color='9C0006')
-            else:
-                cell.value = "N/A"
-                cell.font = self.number_font
-            cell.alignment = self.right_align
-            cell.border = self.border
-    
-    def _create_financial_metrics_chart(self, sheet, title, categories_range, data_ranges, series_names, position):
-        """Create a line chart for financial metrics.
+                sheet[f'A{row}'].font = Font(name='Arial', size=10)
         
-        Args:
-            sheet: Excel worksheet to add the chart to.
-            title: Chart title.
-            categories_range: Range for category labels (periods).
-            data_ranges: List of ranges for data series.
-            series_names: List of names for data series.
-            position: Cell position for the chart.
-        """
-        chart = LineChart()
-        chart.title = title
-        chart.style = 2
-        chart.height = 15  # Height in centimeters
-        chart.width = 25   # Width in centimeters
-        
-        # Add categories (periods)
-        cats = Reference(sheet, range_string=f"{sheet.title}!{categories_range}")
-        chart.set_categories(cats)
-        
-        # Add data series
-        for i, (data_range, series_name) in enumerate(zip(data_ranges, series_names)):
-            data = Reference(sheet, range_string=f"{sheet.title}!{data_range}")
-            
-            if i >= len(chart.series):
-                chart.add_data(data, titles_from_data=False)
-                series = chart.series[i]
-            else:
-                series = chart.series[i]
-                series.values = data
-            
-            # Set series title using SeriesLabel
-            series.tx = SeriesLabel(v=series_name)
-        
-        # Add the chart to the worksheet
-        sheet.add_chart(chart, position)
+        # Adjust column width
+        sheet.column_dimensions['A'].width = 80
