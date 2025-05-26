@@ -57,7 +57,7 @@ class InstitutionalDetailedTemplate:
             'StockBasedCompensation',
             'OperatingExpenses',
             'OperatingIncomeLoss',
-            'InterestAndOtherIncomeExpense',  # Combined Interest & Other Income/Expense
+            'OtherExpenses',  # Combined Interest & Other Income/Expense (mapped from nonoperating_income_loss)
             'DepreciationAndAmortization',
             'IncomeLossBeforeIncomeTaxes',
             'IncomeTaxExpenseBenefit',
@@ -77,7 +77,7 @@ class InstitutionalDetailedTemplate:
             'StockBasedCompensation': 'Stock-Based Compensation *',
             'OperatingExpenses': 'Total Operating Expenses',
             'OperatingIncomeLoss': 'Operating Income',
-            'InterestAndOtherIncomeExpense': 'Interest & Other Income, Expense',
+            'OtherExpenses': 'Interest & Other Income, Expense',
             'DepreciationAndAmortization': 'Depreciation & Amortization *',
             'IncomeLossBeforeIncomeTaxes': 'Pre-Tax Income',
             'IncomeTaxExpenseBenefit': 'Income Tax Expense',
