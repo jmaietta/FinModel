@@ -292,6 +292,131 @@ class InstitutionalDetailedTemplate:
                 # Apply alternating row fill
                 if i % 2 == 0:
                     cell.fill = self.alternate_row_fill
+        
+        # Add Year-over-Year Growth section
+        yoy_start_row = start_row + len(margin_items) + 3  # Leave a blank line
+        
+        # Add YoY Growth header
+        cell = sheet.cell(row=yoy_start_row, column=1)
+        cell.value = "Year-over-Year Growth"
+        cell.font = self.subheader_font
+        cell.fill = self.subheader_fill
+        cell.alignment = self.left_align
+        cell.border = self.border
+        
+        for j in range(1, len(sorted_periods) + 2):  # Extend across all columns
+            if j > 1:
+                cell = sheet.cell(row=yoy_start_row, column=j)
+                cell.fill = self.subheader_fill
+                cell.border = self.border
+        
+        # Add YoY growth calculations
+        yoy_items = [
+            ("Total Revenue", 'Revenues'),
+            ("Operating Income", 'OperatingIncomeLoss'),
+            ("EPS", 'EPS')  # Will use calculated EPS values
+        ]
+        
+        for i, (yoy_name, metric_key) in enumerate(yoy_items):
+            row = yoy_start_row + i + 1
+            
+            # YoY metric name
+            cell = sheet.cell(row=row, column=1)
+            cell.value = yoy_name
+            cell.font = self.normal_font
+            cell.alignment = self.left_align
+            cell.border = self.border
+            
+            # Apply alternating row fill
+            if i % 2 == 0:
+                cell.fill = self.alternate_row_fill
+            
+            # Calculate YoY growth for each period (skip first 4 quarters)
+            for j, (period_key, period_data) in enumerate(sorted_periods):
+                col = j + 2
+                cell = sheet.cell(row=row, column=col)
+                
+                # Skip first 4 quarters (no YoY comparison available)
+                if j < 4:
+                    cell.value = "N/A"
+                    cell.font = self.note_font
+                else:
+                    # Get current period value and year-ago period value (4 quarters back)
+                    current_period_data = sorted_periods[j][1]
+                    year_ago_period_data = sorted_periods[j + 4][1] if j + 4 < len(sorted_periods) else None
+                    
+                    if year_ago_period_data:
+                        # Handle EPS calculation for YoY growth
+                        if metric_key == 'EPS':
+                            # Calculate current EPS
+                            current_items = current_period_data.get('items', {})
+                            current_net_income = current_items.get('NetIncomeLoss', {}).get('value')
+                            current_shares = current_items.get('WeightedAverageSharesOutstandingDiluted', {}).get('value')
+                            current_eps = None
+                            if (current_net_income is not None and current_shares is not None and current_shares != 0):
+                                current_eps = current_net_income / current_shares
+                            
+                            # Calculate year-ago EPS
+                            year_ago_items = year_ago_period_data.get('items', {})
+                            year_ago_net_income = year_ago_items.get('NetIncomeLoss', {}).get('value')
+                            year_ago_shares = year_ago_items.get('WeightedAverageSharesOutstandingDiluted', {}).get('value')
+                            year_ago_eps = None
+                            if (year_ago_net_income is not None and year_ago_shares is not None and year_ago_shares != 0):
+                                year_ago_eps = year_ago_net_income / year_ago_shares
+                            
+                            # Calculate YoY EPS growth
+                            if (current_eps is not None and year_ago_eps is not None and year_ago_eps != 0):
+                                yoy_growth = (current_eps - year_ago_eps) / year_ago_eps * 100
+                                cell.value = yoy_growth
+                                cell.number_format = '0.00"%"'
+                                
+                                # Color code: green for positive, red for negative
+                                if yoy_growth > 0:
+                                    cell.font = Font(name='Arial', size=10, color='006100')
+                                elif yoy_growth < 0:
+                                    cell.font = Font(name='Arial', size=10, color='9C0006')
+                                else:
+                                    cell.font = self.number_font
+                            else:
+                                cell.value = "N/A"
+                                cell.font = self.note_font
+                        else:
+                            # Handle regular metrics (Revenue, Operating Income)
+                            current_items = current_period_data.get('items', {})
+                            year_ago_items = year_ago_period_data.get('items', {})
+                            
+                            if (metric_key in current_items and 
+                                metric_key in year_ago_items and
+                                current_items[metric_key].get('value') is not None and
+                                year_ago_items[metric_key].get('value') is not None and
+                                year_ago_items[metric_key].get('value', 0) != 0):
+                                
+                                current_value = current_items[metric_key].get('value', 0)
+                                year_ago_value = year_ago_items[metric_key].get('value', 0)
+                                yoy_growth = (current_value - year_ago_value) / year_ago_value * 100
+                                cell.value = yoy_growth
+                                cell.number_format = '0.00"%"'
+                                
+                                # Color code: green for positive, red for negative
+                                if yoy_growth > 0:
+                                    cell.font = Font(name='Arial', size=10, color='006100')
+                                elif yoy_growth < 0:
+                                    cell.font = Font(name='Arial', size=10, color='9C0006')
+                                else:
+                                    cell.font = self.number_font
+                            else:
+                                cell.value = "N/A"
+                                cell.font = self.note_font
+                    else:
+                        cell.value = "N/A"
+                        cell.font = self.note_font
+                
+                cell.alignment = self.right_align
+                cell.border = self.border
+                
+                # Apply alternating row fill
+                if i % 2 == 0:
+                    cell.fill = self.alternate_row_fill
     
     def _create_data_notes_sheet(self, sheet, income_statement: Dict):
         """Create data notes sheet explaining data limitations.
