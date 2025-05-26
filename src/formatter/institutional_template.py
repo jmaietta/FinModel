@@ -45,7 +45,7 @@ class InstitutionalDetailedTemplate:
             bottom=Side(style='thin', color='000000')
         )
         
-        # Define institutional line items in order - updated for combined SG&A
+        # Define institutional line items in order - updated for combined SG&A and Interest/Other
         self.institutional_line_items = [
             'Revenues',
             'CostOfGoodsSold',
@@ -57,10 +57,7 @@ class InstitutionalDetailedTemplate:
             'StockBasedCompensation',
             'OperatingExpenses',
             'OperatingIncomeLoss',
-            'InterestExpense',
-            'InterestIncome',
-            'OtherExpenses',
-            'OtherIncome',
+            'InterestAndOtherIncomeExpense',  # Combined Interest & Other Income/Expense
             'DepreciationAndAmortization',
             'IncomeLossBeforeIncomeTaxes',
             'IncomeTaxExpenseBenefit',
@@ -80,10 +77,7 @@ class InstitutionalDetailedTemplate:
             'StockBasedCompensation': 'Stock-Based Compensation *',
             'OperatingExpenses': 'Total Operating Expenses',
             'OperatingIncomeLoss': 'Operating Income',
-            'InterestExpense': 'Interest Expense *',
-            'InterestIncome': 'Interest Income *',
-            'OtherExpenses': 'Other Expenses',
-            'OtherIncome': 'Other Income *',
+            'InterestAndOtherIncomeExpense': 'Interest & Other Income, Expense',
             'DepreciationAndAmortization': 'Depreciation & Amortization *',
             'IncomeLossBeforeIncomeTaxes': 'Pre-Tax Income',
             'IncomeTaxExpenseBenefit': 'Income Tax Expense',
@@ -96,9 +90,6 @@ class InstitutionalDetailedTemplate:
             'SalesAndMarketingExpense',
             'GeneralAndAdministrativeExpense', 
             'StockBasedCompensation',
-            'InterestExpense',
-            'InterestIncome',
-            'OtherIncome',
             'DepreciationAndAmortization'
         }
     
@@ -363,9 +354,6 @@ class InstitutionalDetailedTemplate:
             "• Sales & Marketing (Separate) - Combined in SG&A total",
             "• General & Administrative (Separate) - Combined in SG&A total",
             "• Stock-Based Compensation - Not separately disclosed",
-            "• Interest Expense - Not separately disclosed",
-            "• Interest Income - Not separately disclosed", 
-            "• Other Income - Not separately disclosed",
             "• Depreciation & Amortization - Not separately disclosed"
         ]
         
