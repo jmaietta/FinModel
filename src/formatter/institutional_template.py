@@ -45,53 +45,42 @@ class InstitutionalDetailedTemplate:
             bottom=Side(style='thin', color='000000')
         )
         
-        # Define institutional line items in order - updated for combined SG&A and Interest/Other
+        # Define institutional line items in order - cleaned up to show only available data
         self.institutional_line_items = [
             'Revenues',
             'CostOfGoodsSold',
             'GrossProfit',
             'ResearchAndDevelopmentExpense',
-            'SellingGeneralAndAdministrativeExpenses',  # Combined SG&A
-            'SalesAndMarketingExpense',  # Will show as N/A with note
-            'GeneralAndAdministrativeExpense',  # Will show as N/A with note
-            'StockBasedCompensation',
+            'SellingGeneralAndAdministrativeExpenses',  # Combined SG&A when available
             'OperatingExpenses',
             'OperatingIncomeLoss',
             'OtherExpenses',  # Combined Interest & Other Income/Expense (mapped from nonoperating_income_loss)
-            'DepreciationAndAmortization',
             'IncomeLossBeforeIncomeTaxes',
             'IncomeTaxExpenseBenefit',
             'NetIncomeLoss',
+            'EPS',  # Calculated field: Net Income / Fully-Diluted Shares
             'WeightedAverageSharesOutstandingDiluted'
         ]
         
-        # Map item keys to display names with notes for unavailable items
+        # Map item keys to display names - cleaned up to show only available data
         self.item_display_names = {
             'Revenues': 'Total Revenue',
             'CostOfGoodsSold': 'Cost of Goods Sold',
             'GrossProfit': 'Gross Profit',
             'ResearchAndDevelopmentExpense': 'Research & Development',
             'SellingGeneralAndAdministrativeExpenses': 'Sales, General & Administrative (Combined)',
-            'SalesAndMarketingExpense': 'Sales & Marketing (Separate) *',
-            'GeneralAndAdministrativeExpense': 'General & Administrative (Separate) *',
-            'StockBasedCompensation': 'Stock-Based Compensation *',
             'OperatingExpenses': 'Total Operating Expenses',
             'OperatingIncomeLoss': 'Operating Income',
             'OtherExpenses': 'Interest & Other Income, Expense',
-            'DepreciationAndAmortization': 'Depreciation & Amortization *',
             'IncomeLossBeforeIncomeTaxes': 'Pre-Tax Income',
             'IncomeTaxExpenseBenefit': 'Income Tax Expense',
             'NetIncomeLoss': 'Net Income',
+            'EPS': 'Earnings Per Share (Diluted)',
             'WeightedAverageSharesOutstandingDiluted': 'Fully-Diluted Shares Outstanding'
         }
         
-        # Items that are unavailable and should be highlighted
-        self.unavailable_items = {
-            'SalesAndMarketingExpense',
-            'GeneralAndAdministrativeExpense', 
-            'StockBasedCompensation',
-            'DepreciationAndAmortization'
-        }
+        # Items that are unavailable and should be highlighted (now only SG&A if not available)
+        self.unavailable_items = set()  # No longer needed since we removed unavailable items
     
     def create_template(self, income_statement: Dict, output_path: str) -> str:
         """Create institutional detailed template for income statement.
@@ -144,7 +133,7 @@ class InstitutionalDetailedTemplate:
         sheet['A1'].alignment = Alignment(horizontal='center')
         
         # Add data quality note
-        sheet['A2'] = "* Line items marked with asterisk (*) are not separately disclosed by data provider"
+        sheet['A2'] = "Data sourced from Polygon.io - Combined line items reflect provider's data structure"
         sheet['A2'].font = self.note_font
         sheet.merge_cells('A2:N2')
         sheet['A2'].alignment = Alignment(horizontal='center')
@@ -198,7 +187,24 @@ class InstitutionalDetailedTemplate:
                 cell = sheet.cell(row=row, column=col)
                 
                 items = period_data.get('items', {})
-                if item_key in items and items[item_key].get('value') is not None:
+                
+                # Handle EPS calculation
+                if item_key == 'EPS':
+                    # Calculate EPS = Net Income / Fully-Diluted Shares Outstanding
+                    net_income = items.get('NetIncomeLoss', {}).get('value')
+                    shares_outstanding = items.get('WeightedAverageSharesOutstandingDiluted', {}).get('value')
+                    
+                    if (net_income is not None and shares_outstanding is not None and 
+                        shares_outstanding != 0):
+                        eps_value = net_income / shares_outstanding
+                        cell.value = eps_value
+                        cell.number_format = '$0.00'  # EPS in dollars and cents
+                        cell.font = self.number_font
+                    else:
+                        cell.value = "N/A"
+                        cell.font = self.note_font
+                
+                elif item_key in items and items[item_key].get('value') is not None:
                     value = items[item_key].get('value', 0)
                     cell.value = value
                     
@@ -212,18 +218,13 @@ class InstitutionalDetailedTemplate:
                 else:
                     cell.value = "N/A"
                     cell.font = self.note_font
-                    
-                    # Highlight unavailable items with light red background
-                    if item_key in self.unavailable_items:
-                        cell.fill = self.na_fill
                 
                 cell.alignment = self.right_align
                 cell.border = self.border
                 
                 # Apply alternating row fill for available items
-                if i % 2 == 1 and (item_key not in items or items[item_key].get('value') is None):
-                    if item_key not in self.unavailable_items:
-                        cell.fill = self.alternate_row_fill
+                if i % 2 == 1:
+                    cell.fill = self.alternate_row_fill
         
         # Add calculated margins
         margin_items = [
@@ -345,22 +346,22 @@ class InstitutionalDetailedTemplate:
             sheet[f'A{10 + i}'] = field
             sheet[f'A{10 + i}'].font = Font(name='Arial', size=10, color='006100')
         
-        # Unavailable fields
+        # Unavailable fields (significantly reduced)
         unavailable_start_row = 10 + len(available_fields) + 2
-        sheet[f'A{unavailable_start_row}'] = "❌ UNAVAILABLE FIELDS (Not Separately Disclosed)"
-        sheet[f'A{unavailable_start_row}'].font = Font(name='Arial', size=11, bold=True, color='9C0006')
+        sheet[f'A{unavailable_start_row}'] = "ℹ️  COMBINED/UNAVAILABLE FIELDS"
+        sheet[f'A{unavailable_start_row}'].font = Font(name='Arial', size=11, bold=True, color='666666')
         
         unavailable_fields = [
-            "• Sales & Marketing (Separate) - Combined in SG&A total",
-            "• General & Administrative (Separate) - Combined in SG&A total",
-            "• Stock-Based Compensation - Not separately disclosed",
-            "• Depreciation & Amortization - Not separately disclosed"
+            "• Sales & Marketing + General & Administrative - Combined into single SG&A line",
+            "• Stock-Based Compensation - Not separately disclosed (typically included in SG&A)",
+            "• Depreciation & Amortization - Not separately disclosed",
+            "• Interest Income/Expense - Combined into 'Interest & Other Income, Expense' line"
         ]
         
         for i, field in enumerate(unavailable_fields):
             row = unavailable_start_row + 1 + i
             sheet[f'A{row}'] = field
-            sheet[f'A{row}'].font = Font(name='Arial', size=10, color='9C0006')
+            sheet[f'A{row}'].font = Font(name='Arial', size=10, color='666666')
         
         # Professional approach explanation
         explanation_start_row = unavailable_start_row + len(unavailable_fields) + 3
