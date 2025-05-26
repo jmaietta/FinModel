@@ -138,9 +138,9 @@ class InstitutionalDetailedTemplate:
         sheet.merge_cells('A2:N2')
         sheet['A2'].alignment = Alignment(horizontal='center')
         
-        # Extract periods and sort by date (most recent first)
+        # Extract periods and sort by date (oldest first for traditional layout)
         periods = income_statement.get('periods', {})
-        sorted_periods = sorted(periods.items(), key=lambda x: x[0], reverse=True)
+        sorted_periods = sorted(periods.items(), key=lambda x: x[0])  # Oldest to newest
         
         if not sorted_periods:
             sheet['A4'] = "No data available"
