@@ -292,6 +292,41 @@ class InstitutionalDetailedTemplate:
                 # Apply alternating row fill
                 if i % 2 == 0:
                     cell.fill = self.alternate_row_fill
+        
+        # Add fiscal Q4 share count disclaimer if applicable
+        self._add_fiscal_q4_disclaimer(sheet, sorted_periods, start_row + len(margin_items) + 2)
+    
+    def _add_fiscal_q4_disclaimer(self, sheet, sorted_periods: List, start_row: int):
+        """Add fiscal Q4 share count disclaimer if fiscal year-end quarters are present.
+        
+        Args:
+            sheet: Excel worksheet to populate.
+            sorted_periods: List of (period_key, period_data) tuples.
+            start_row: Row to start the disclaimer.
+        """
+        # Check if any periods are fiscal year-end quarters
+        has_fiscal_q4 = False
+        
+        # Common fiscal year-end months (December = 12, June = 06, March = 03, September = 09)
+        fiscal_year_end_months = ['12', '06', '03', '09']
+        
+        for period_key, _ in sorted_periods:
+            if any(period_key.endswith(f'-{month}-') or period_key.endswith(f'-{month}-31') or period_key.endswith(f'-{month}-30') for month in fiscal_year_end_months):
+                has_fiscal_q4 = True
+                break
+        
+        # Add disclaimer if fiscal Q4 periods are present
+        if has_fiscal_q4:
+            disclaimer_row = start_row + 1
+            
+            # Add disclaimer note
+            cell = sheet.cell(row=disclaimer_row, column=1)
+            cell.value = "Note: Fiscal Q4 share count may require verification"
+            cell.font = self.note_font
+            cell.alignment = self.left_align
+            
+            # Merge across a few columns for better visibility
+            sheet.merge_cells(f'A{disclaimer_row}:E{disclaimer_row}')
     
     def _create_data_notes_sheet(self, sheet, income_statement: Dict):
         """Create data notes sheet explaining data limitations.
