@@ -2,14 +2,25 @@
   "version": 2,
   "builds": [
     {
-      "src": "api/index.py",
+      "src": "api/*.py",
       "use": "@vercel/python"
+    },
+    {
+      "src": "public/**/*",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
     {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
       "src": "/(.*)",
-      "dest": "/api/index.py"
+      "dest": "/public/$1"
     }
-  ]
+  ],
+  "env": {
+    "POLYGON_API_KEY": "@polygon_api_key"
+  }
 }
