@@ -8,6 +8,7 @@ import os
 import sys
 import logging
 from flask import Flask, render_template, request, jsonify, send_file, abort
+import tempfile
 
 import os
 from flask import send_file, abort
@@ -48,8 +49,9 @@ if not api_keys:
     if any(api_keys.values()):
         api_key_manager.store_api_keys(api_keys)
 
-# Initialize Excel generator
-excel_generator = ExcelGenerator(api_keys)
+# Vercel-specific: Use temporary directory for file operations  
+TEMP_DIR = '/tmp' if os.path.exists('/tmp') else tempfile.gettempdir()
+excel_generator = ExcelGenerator(api_keys, output_dir=TEMP_DIR)
 
 @app.route('/')
 def index():
