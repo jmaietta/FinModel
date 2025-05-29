@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Financial Statement Generator</title>
+  <title>FinModel - Professional Financial Analysis</title>
   <link 
     href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" 
     rel="stylesheet"
@@ -11,160 +11,323 @@
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #f8f9fa;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      min-height: 100vh;
       color: #212529;
-      margin: 0; padding: 0;
+      margin: 0; 
+      padding: 0;
     }
-    .container {
-      max-width: 800px;
-      margin: 50px auto;
+    .main-container {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
     }
-    .card {
-      border-radius: 10px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      margin-bottom: 20px;
+    .main-card {
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+      background: white;
+      border: none;
+      max-width: 600px;
+      width: 100%;
+      overflow: hidden;
     }
-    .card-header {
-      background-color: #0066cc;
-      color: white;
-      font-weight: bold;
-      border-radius: 10px 10px 0 0;
+    .header-section {
+      background: white;
+      padding: 40px 40px 20px 40px;
+      text-align: center;
+      border-bottom: 1px solid #f1f3f4;
     }
-    .btn-primary {
-      background-color: #0066cc;
+    .main-title {
+      font-size: 2.5rem;
+      font-weight: 200;
+      color: #2c3e50;
+      margin-bottom: 15px;
+      letter-spacing: -1px;
+      font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    }
+    .subtitle {
+      color: #6c757d;
+      font-size: 1.1rem;
+      margin-bottom: 0;
+      font-weight: 400;
+    }
+    .form-section {
+      padding: 40px;
+    }
+    .form-card {
+      border-radius: 15px;
+      border: 2px solid #e9ecef;
+      background: #f8f9fa;
+      padding: 0;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+    .form-card:hover {
       border-color: #0066cc;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0,102,204,0.1);
     }
-    .btn-primary:hover {
-      background-color: #0056b3;
-      border-color: #0056b3;
+    .form-header {
+      background: linear-gradient(135deg, #0066cc 0%, #004499 100%);
+      color: white;
+      padding: 20px;
+      font-weight: 600;
+      font-size: 1.1rem;
+      text-align: center;
+    }
+    .form-body {
+      padding: 30px;
+      background: white;
+      text-align: center;
+    }
+    .form-label {
+      font-weight: 600;
+      color: #495057;
+      margin-bottom: 10px;
     }
     .ticker-input {
-      font-size: 1.2rem;
+      font-size: 1.3rem;
+      font-weight: 600;
       text-transform: uppercase;
+      border-radius: 10px;
+      border: 2px solid #e9ecef;
+      padding: 15px 20px;
+      transition: all 0.3s ease;
+      letter-spacing: 1px;
+      text-align: center;
+    }
+    .ticker-input:focus {
+      border-color: #0066cc;
+      box-shadow: 0 0 0 0.25rem rgba(0,102,204,0.15);
+      transform: scale(1.02);
+    }
+    .ticker-input::placeholder {
+      color: #adb5bd;
+      font-weight: 400;
+    }
+    .generate-btn {
+      background: linear-gradient(135deg, #0066cc 0%, #004499 100%);
+      border: none;
+      border-radius: 12px;
+      padding: 15px 40px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      width: 100%;
+      margin-top: 25px;
+      color: white;
+    }
+    .generate-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(0,102,204,0.3);
+      background: linear-gradient(135deg, #0056b3 0%, #003d82 100%);
     }
     .loading {
       display: none;
       text-align: center;
-      margin: 20px 0;
+      margin: 30px 0;
+      padding: 30px;
+    }
+    .loading .spinner-border {
+      width: 3rem;
+      height: 3rem;
+      color: #0066cc;
+    }
+    .loading-text {
+      margin-top: 20px;
+      font-weight: 600;
+      color: #0066cc;
+      font-size: 1.1rem;
+    }
+    .loading-subtext {
+      color: #6c757d;
+      font-size: 0.95rem;
+      margin-top: 8px;
     }
     .result-section {
       display: none;
+      margin-top: 30px;
+      animation: slideIn 0.5s ease-out;
     }
-    .footer {
-      margin-top: 50px;
-      text-align: center;
-      font-size: 0.9rem;
+    .success-alert {
+      background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+      border: none;
+      border-radius: 15px;
+      color: white;
+      padding: 25px;
+      margin-bottom: 25px;
+    }
+    .success-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .download-btn {
+      background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+      border: none;
+      border-radius: 12px;
+      padding: 15px 30px;
+      font-weight: 600;
+      font-size: 1.1rem;
+      margin-bottom: 15px;
+      width: 100%;
+      transition: all 0.3s ease;
+    }
+    .download-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(40,167,69,0.3);
+    }
+    .new-search-btn {
+      background: transparent;
+      border: 2px solid #6c757d;
       color: #6c757d;
+      border-radius: 12px;
+      padding: 12px 30px;
+      font-weight: 600;
+      width: 100%;
+      transition: all 0.3s ease;
+    }
+    .new-search-btn:hover {
+      background: #6c757d;
+      color: white;
+      transform: translateY(-1px);
+    }
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .form-text {
+      color: #6c757d;
+      font-size: 0.9rem;
+      margin-top: 8px;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="text-center mb-4">
-      <h1 class="display-4">Financial Statement Generator</h1>
-      <p class="lead">
-        Generate detailed income statements for technology companies
-      </p>
-    </div>
+  <div class="main-container">
+    <div class="main-card">
+      
+      <!-- Header Section -->
+      <div class="header-section">
+        <h1 class="main-title">FinModel</h1>
+        <p class="subtitle">Professional Financial Analysis</p>
+      </div>
 
-    <div class="card">
-      <div class="card-header">Enter Company Ticker</div>
-      <div class="card-body">
-        <form id="ticker-form">
-          <div class="mb-3">
-            <label for="ticker" class="form-label">Stock Ticker Symbol</label>
-            <input
-              type="text"
-              class="form-control ticker-input"
-              id="ticker"
-              placeholder="e.g., AAPL"
-              required
-            />
-            <div class="form-text">
-              Enter the ticker symbol of any publicly-traded technology company.
-            </div>
+      <!-- Form Section -->
+      <div class="form-section">
+        <div class="form-card">
+          <div class="form-header">
+            Enter Ticker Symbol
           </div>
-          <button type="submit" class="btn btn-primary">
-            Generate Income Statement
-          </button>
-        </form>
-      </div>
-    </div>
+          <div class="form-body">
+            <form id="ticker-form">
+              <div class="mb-3">
+                <input
+                  type="text"
+                  class="form-control ticker-input"
+                  id="ticker"
+                  placeholder="ex. AAPL, GOOGL, MSFT"
+                  required
+                />
+              </div>
+              
+              <button type="submit" class="btn btn-primary generate-btn">
+                📊 Generate Income Statement
+              </button>
+            </form>
+          </div>
+        </div>
 
-    <div class="loading" id="loading-section">
-      <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Loading...</span>
-      </div>
-      <p class="mt-2">
-        Retrieving financial data and generating Excel report...
-      </p>
-      <p class="text-muted small">
-        This may take a few moments as we analyze multiple data sources.
-      </p>
-    </div>
+        <!-- Loading Section -->
+        <div class="loading" id="loading-section">
+          <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <div class="loading-text">
+            Retrieving financial data...
+          </div>
+          <div class="loading-subtext">
+            Analyzing multiple quarters of data to build your model.
+          </div>
+        </div>
 
-    <div class="result-section" id="result-section">
-      <div class="card">
-        <div class="card-header">Income Statement Ready</div>
-        <div class="card-body">
-          <h5 class="card-title" id="result-company">
-            Company Name (TICKER)
-          </h5>
-          <p class="card-text">
-            Your income statement has been successfully generated with the
-            following details:
-          </p>
-          <ul class="list-group mb-3">
-            <li
-              class="list-group-item d-flex justify-content-between align-items-center"
-            >
-              Periods Included
-              <span class="badge bg-primary rounded-pill">12 quarters</span>
-            </li>
-            <li
-              class="list-group-item d-flex justify-content-between align-items-center"
-            >
-              Line Items
-              <span class="badge bg-primary rounded-pill">18 institutional metrics</span>
-            </li>
-            <li
-              class="list-group-item d-flex justify-content-between align-items-center"
-            >
-              Format
-              <span class="badge bg-primary rounded-pill">Excel (.xlsx)</span>
-            </li>
-          </ul>
-          <a
-            href="#"
-            id="download-link"
-            class="btn btn-success"
-            download
-          >
-            Download Excel File
-          </a>
-          <button class="btn btn-secondary ms-2" id="new-search">
-            New Search
-          </button>
+        <!-- Result Section -->
+        <div class="result-section" id="result-section">
+          <div class="success-alert">
+            <div class="success-title">✓ Income Statement Ready</div>
+            <div>Your comprehensive financial model has been generated successfully.</div>
+          </div>
+          
+          <div class="d-grid gap-3">
+            <button class="btn btn-success download-btn" id="download-btn">
+              📥 Download Excel File
+            </button>
+            <button class="btn new-search-btn" id="new-search">
+              🔄 Generate Another Report
+            </button>
+          </div>
         </div>
       </div>
     </div>
-
-    <div class="footer">
-      <p>
-        This application automatically selects the highest quality financial
-        data sources for each company.
-      </p>
-      <p>
-        All data is retrieved in real-time from authoritative financial data providers.
-      </p>
-    </div>
   </div>
 
-  <!-- Bootstrap JS -->
-  <script
-    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
-  ></script>
-  <!-- Your external app logic -->
-  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const tickerForm = document.getElementById('ticker-form');
+      const loadingSection = document.getElementById('loading-section');
+      const resultSection = document.getElementById('result-section');
+      const downloadBtn = document.getElementById('download-btn');
+      const newSearchBtn = document.getElementById('new-search');
+      
+      let excelData = null;
+      let filename = null;
+
+      tickerForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const ticker = document.getElementById('ticker').value.trim().toUpperCase();
+        if (!ticker) return;
+
+        // Show loading
+        loadingSection.style.display = 'block';
+        resultSection.style.display = 'none';
+
+        fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ticker })
+        })
+        .then(response => response.json())
+        .then(data => {
+          loadingSection.style.display = 'none';
+          
+          if (data.success) {
+            // For your current Render setup, redirect to download
+            window.location.href = `/api/download/${ticker}`;
+            resultSection.style.display = 'block';
+          } else {
+            alert('Error: ' + (data.error || 'Failed to generate report'));
+          }
+        })
+        .catch(err => {
+          loadingSection.style.display = 'none';
+          alert('Error: ' + err.message);
+        });
+      });
+
+      newSearchBtn.addEventListener('click', function() {
+        resultSection.style.display = 'none';
+        document.getElementById('ticker').value = '';
+      });
+    });
+  </script>
 </body>
 </html>
