@@ -1,5 +1,5 @@
 """
-Main Flask application for the financial web app.
+Main Flask application for the financial web app with rate limiting.
 
 This module serves as the entry point for the Flask application,
 integrating all components for the financial statement generator.
@@ -8,10 +8,8 @@ import os
 import sys
 import logging
 from flask import Flask, render_template, request, jsonify, send_file, abort
-import tempfile
-
-import os
-from flask import send_file, abort
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
@@ -31,6 +29,15 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.urandom(24).hex()
 
+# Initialize rate limiter
+limiter = Limiter(
+    key_func=get_remote_address,
+    app=app,
+    default_limits=["1000 per day", "100 per hour"],
+    storage_uri="memory://",
+    strategy="fixed-window"
+)
+
 # Initialize API key manager
 api_key_manager = ApiKeyManager()
 api_key_manager.initialize_encryption(app.config['SECRET_KEY'])
@@ -49,16 +56,40 @@ if not api_keys:
     if any(api_keys.values()):
         api_key_manager.store_api_keys(api_keys)
 
-# Vercel-specific: Use temporary directory for file operations  
-TEMP_DIR = '/tmp' if os.path.exists('/tmp') else tempfile.gettempdir()
-excel_generator = ExcelGenerator(api_keys, output_dir=TEMP_DIR)
+# Initialize Excel generator
+excel_generator = ExcelGenerator(api_keys)
+
+# Block suspicious bots
+@app.before_request
+def block_suspicious_requests():
+    user_agent = request.headers.get('User-Agent', '').lower()
+    
+    # Block known bot patterns that are scanning for vulnerabilities
+    blocked_patterns = [
+        'go-http-client',
+        'python-requests/',
+        'curl/',
+        'wget/',
+        'scanner',
+        'exploit',
+        'nikto',
+        'sqlmap',
+        'nmap'
+    ]
+    
+    for pattern in blocked_patterns:
+        if pattern in user_agent:
+            logger.warning(f"Blocked suspicious request from {get_remote_address()} with UA: {user_agent}")
+            abort(403)  # Forbidden
 
 @app.route('/')
+@limiter.limit("20 per minute")  # Allow 20 page loads per minute
 def index():
     """Render the main page."""
     return render_template('index.html')
 
 @app.route('/api/generate', methods=['POST'])
+@limiter.limit("5 per minute")  # Strict limit on Excel generation
 def generate_report():
     """Generate financial report for the specified ticker."""
     data = request.json
@@ -89,6 +120,7 @@ def generate_report():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/download/<ticker>')
+@limiter.limit("10 per minute")  # Allow reasonable download rate
 def download_report(ticker):
     """Download the generated Excel file."""
     ticker = ticker.strip().upper()
@@ -105,6 +137,7 @@ def download_report(ticker):
         abort(404)
 
 @app.route('/api/keys', methods=['GET', 'POST'])
+@limiter.limit("10 per hour")  # Very strict on API key management
 def manage_api_keys():
     """Manage API keys."""
     if request.method == 'GET':
@@ -132,6 +165,26 @@ def manage_api_keys():
             return jsonify({'success': True})
         else:
             return jsonify({'success': False, 'error': 'Failed to store API keys'}), 500
+
+# Rate limit error handler
+@app.errorhandler(429)
+def ratelimit_handler(e):
+    """Handle rate limit exceeded errors."""
+    return jsonify({
+        'success': False,
+        'error': 'Rate limit exceeded. Please wait a moment and try again.',
+        'retry_after': e.retry_after
+    }), 429
+
+# Add security headers
+@app.after_request
+def add_security_headers(response):
+    """Add security headers to all responses."""
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    return response
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
