@@ -166,6 +166,11 @@ def manage_api_keys():
         else:
             return jsonify({'success': False, 'error': 'Failed to store API keys'}), 500
 
+@app.route('/robots.txt')
+def robots_txt():
+    """Serve robots.txt file."""
+    return send_file('static/robots.txt', mimetype='text/plain')
+
 # Rate limit error handler
 @app.errorhandler(429)
 def ratelimit_handler(e):
