@@ -1,0 +1,27 @@
+User-agent: *
+Allow: /
+Disallow: /api/keys
+Disallow: /analytics
+
+# Allow legitimate search engines
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+# Block common vulnerability scanners
+User-agent: Nikto
+Disallow: /
+
+User-agent: sqlmap
+Disallow: /
+
+User-agent: Nmap
+Disallow: /
+
+# Crawl delay for all bots
+Crawl-delay: 1
+
+# Sitemap (you can add this later)
+# Sitemap: https://finmodel.app/sitemap.xml
