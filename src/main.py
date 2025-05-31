@@ -197,7 +197,7 @@ def add_security_headers(response):
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; "
         "font-src 'self' https://fonts.gstatic.com; "
         "img-src 'self' data: https://px.ads.linkedin.com; "
-        "connect-src 'self';"
+        "connect-src 'self' https://api.polygon.io;"
     )
     response.headers['Content-Security-Policy'] = csp
     
