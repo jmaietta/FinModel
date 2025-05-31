@@ -89,7 +89,8 @@ def index():
     return render_template('index.html')
 
 @app.route('/api/generate', methods=['POST'])
-@limiter.limit("5 per minute")  # Strict limit on Excel generation
+@limiter.limit("3 per minute")  # Strict limit on Excel generation
+@limiter.limit("15 per hour")  # Add this new line
 def generate_report():
     """Generate financial report for the specified ticker."""
     data = request.json
