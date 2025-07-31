@@ -1,26 +1,72 @@
 {
-  "name": "FinModel - Financial Analysis",
+  "name": "FinModel - Professional Financial Analysis",
   "short_name": "FinModel",
-  "description": "Professional Financial Analysis and API Testing Tool",
+  "description": "Instantly generate 12 quarters of income statement history for comprehensive financial models",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#2196F3",
+  "theme_color": "#0066cc",
   "orientation": "portrait-primary",
+  "scope": "/",
   "icons": [
     {
-      "src": "icon-192.png",
+      "src": "/static/favicon-16x16.png",
+      "sizes": "16x16",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/favicon-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/android-chrome-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable any"
     },
     {
-      "src": "icon-512.png", 
+      "src": "/static/android-chrome-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable any"
     }
   ],
-  "categories": ["finance", "business", "productivity"],
-  "screenshots": []
+  "categories": ["finance", "business", "productivity", "utilities"],
+  "screenshots": [
+    {
+      "src": "/static/screenshot-mobile.png",
+      "sizes": "640x1136",
+      "type": "image/png",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/static/screenshot-desktop.png", 
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Generate Report",
+      "short_name": "Generate",
+      "description": "Quick access to generate a financial report",
+      "url": "/?action=generate",
+      "icons": [
+        {
+          "src": "/static/android-chrome-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
 }
