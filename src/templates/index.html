@@ -30,11 +30,24 @@
   <img height="1" width="1" style="display:none;" alt="" src="https://px.ads.linkedin.com/collect/?pid=8454553&fmt=gif" />
   </noscript>
   
-   <!-- Favicon -->
+  <!-- PWA Meta Tags -->
+  <link rel="manifest" href="/static/manifest.json">
+  <meta name="theme-color" content="#0066cc">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="FinModel">
+  <link rel="apple-touch-icon" href="/static/icon-192.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="/static/icon-152.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/static/icon-192.png">
+  
+  <!-- Favicon -->
   <link rel="icon" type="image/png" href="/static/favicon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/icon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/static/icon-16.png">
   
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="FinModel - Instantly generate clean income statements and comprehensive financial models. Professional financial analysis tool.">
   <title>FinModel - Instantly generate a clean income statement</title>
   <link 
     href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" 
@@ -66,6 +79,7 @@
       max-width: 600px;
       width: 100%;
       overflow: hidden;
+      position: relative;
     }
     .display-4 {
       font-family: 'Roboto', sans-serif !important;
@@ -157,10 +171,14 @@
       margin-top: 25px;
       color: white;
     }
-    .generate-btn:hover {
+    .generate-btn:hover:not(:disabled) {
       transform: translateY(-3px);
       box-shadow: 0 8px 25px rgba(0,102,204,0.3);
       background: linear-gradient(135deg, #0056b3 0%, #003d82 100%);
+    }
+    .generate-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
     }
     .loading {
       display: none;
@@ -246,17 +264,131 @@
       color: #6c757d;
       font-size: 0.9rem;
       margin-top: 8px;
-    }  
-    /* Make input look better on small screens */
+    }
+    
+    /* PWA Install Prompt */
+    .install-prompt {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(135deg, #0066cc 0%, #004499 100%);
+      color: white;
+      padding: 12px 20px;
+      text-align: center;
+      z-index: 1000;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      animation: slideDown 0.3s ease-out;
+    }
+    .install-prompt button {
+      background: white;
+      color: #0066cc;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 16px;
+      margin: 0 5px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .install-prompt button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    .install-prompt .dismiss-btn {
+      background: transparent;
+      color: white;
+      border: 1px solid rgba(255,255,255,0.3);
+    }
+    .install-prompt .dismiss-btn:hover {
+      background: rgba(255,255,255,0.1);
+    }
+    
+    /* Offline indicator */
+    .offline-indicator {
+      display: none;
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      right: 20px;
+      background: #dc3545;
+      color: white;
+      padding: 12px;
+      border-radius: 8px;
+      text-align: center;
+      z-index: 1000;
+      font-size: 0.9rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    @keyframes slideDown {
+      from {
+        transform: translateY(-100%);
+      }
+      to {
+        transform: translateY(0);
+      }
+    }
+    
+    /* Mobile optimizations */
     @media (max-width: 480px) {
+      .main-container {
+        padding: 20px 15px;
+      }
+      .header-section {
+        padding: 30px 25px 15px 25px;
+      }
+      .form-section {
+        padding: 25px;
+      }
+      .main-title {
+        font-size: 2.2rem;
+      }
       .ticker-input {
-        font-size: 1rem;
+        font-size: 1.1rem;
         padding: 12px 16px;
       }
+      .generate-btn {
+        padding: 12px 30px;
+        font-size: 1rem;
+      }
+      .install-prompt {
+        padding: 10px 15px;
+        font-size: 0.85rem;
+      }
+      .install-prompt button {
+        padding: 6px 12px;
+        font-size: 0.8rem;
+      }
+    }
+    
+    /* Better focus states for accessibility */
+    button:focus, input:focus {
+      outline: 2px solid #0066cc;
+      outline-offset: 2px;
+    }
+    
+    /* Smooth scrolling */
+    html {
+      scroll-behavior: smooth;
     }
   </style>
 </head>
 <body>
+  <!-- PWA Install Prompt -->
+  <div class="install-prompt" id="install-prompt">
+    <span>📱 Install FinModel for instant access to financial analysis</span>
+    <button onclick="installApp()" id="install-btn">Install App</button>
+    <button class="dismiss-btn" onclick="dismissInstall()">Not Now</button>
+  </div>
+
+  <!-- Offline Indicator -->
+  <div class="offline-indicator" id="offline-indicator">
+    📡 You're offline. Some features may not be available.
+  </div>
+
   <div class="main-container">
     <div class="main-card">
       
@@ -281,10 +413,14 @@
                   id="ticker"
                   placeholder="ex. AAPL, GOOGL, MSFT"
                   required
+                  autocomplete="off"
+                  autocorrect="off"
+                  autocapitalize="characters"
+                  spellcheck="false"
                 />
               </div>
               
-              <button type="submit" class="btn btn-primary generate-btn">
+              <button type="submit" class="btn btn-primary generate-btn" id="submit-btn">
                 📊 Download Income Statement
               </button>
             </form>
@@ -293,7 +429,7 @@
 
         <!-- Loading Section -->
         <div class="loading" id="loading-section">
-          <div class="spinner-border" role="status">
+          <div class="spinner-border" role="status" aria-label="Loading financial data">
             <span class="visually-hidden">Loading...</span>
           </div>
           <div class="loading-text">
@@ -326,24 +462,126 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
+    // PWA functionality
+    let deferredPrompt;
+    let isOnline = navigator.onLine;
+
+    // Service Worker Registration
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/static/sw.js')
+          .then((registration) => {
+            console.log('SW registered: ', registration);
+          })
+          .catch((registrationError) => {
+            console.log('SW registration failed: ', registrationError);
+          });
+      });
+    }
+
+    // PWA Install Prompt
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      
+      // Show install prompt after a short delay
+      setTimeout(() => {
+        if (deferredPrompt && !localStorage.getItem('pwa-dismissed')) {
+          document.getElementById('install-prompt').style.display = 'block';
+        }
+      }, 3000);
+    });
+
+    function installApp() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then((choiceResult) => {
+          if (choiceResult.outcome === 'accepted') {
+            console.log('User accepted the install prompt');
+            gtag('event', 'pwa_install', {
+              'event_category': 'engagement',
+              'event_label': 'PWA Install Accepted'
+            });
+          }
+          deferredPrompt = null;
+          document.getElementById('install-prompt').style.display = 'none';
+        });
+      }
+    }
+
+    function dismissInstall() {
+      document.getElementById('install-prompt').style.display = 'none';
+      localStorage.setItem('pwa-dismissed', 'true');
+      gtag('event', 'pwa_dismiss', {
+        'event_category': 'engagement',
+        'event_label': 'PWA Install Dismissed'
+      });
+    }
+
+    // Online/Offline Detection
+    function updateOnlineStatus() {
+      const offlineIndicator = document.getElementById('offline-indicator');
+      if (navigator.onLine) {
+        offlineIndicator.style.display = 'none';
+        isOnline = true;
+      } else {
+        offlineIndicator.style.display = 'block';
+        isOnline = false;
+      }
+    }
+
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+    updateOnlineStatus(); // Check initial status
+
+    // Main application functionality
     document.addEventListener('DOMContentLoaded', function() {
       const tickerForm = document.getElementById('ticker-form');
       const loadingSection = document.getElementById('loading-section');
       const resultSection = document.getElementById('result-section');
       const downloadBtn = document.getElementById('download-btn');
       const newSearchBtn = document.getElementById('new-search');
+      const submitBtn = document.getElementById('submit-btn');
+      const tickerInput = document.getElementById('ticker');
       
       let excelData = null;
       let filename = null;
 
+      // Auto-focus ticker input on mobile
+      if (window.innerWidth > 768) {
+        tickerInput.focus();
+      }
+
+      // Handle URL parameters for shortcuts
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('action') === 'generate') {
+        tickerInput.focus();
+      }
+
       tickerForm.addEventListener('submit', function(e) {
         e.preventDefault();
-        const ticker = document.getElementById('ticker').value.trim().toUpperCase();
+        const ticker = tickerInput.value.trim().toUpperCase();
         if (!ticker) return;
+
+        // Check if online
+        if (!isOnline) {
+          alert('Please check your internet connection and try again.');
+          return;
+        }
+
+        // Disable form during submission
+        submitBtn.disabled = true;
+        tickerInput.disabled = true;
 
         // Show loading
         loadingSection.style.display = 'block';
         resultSection.style.display = 'none';
+
+        // Track analytics
+        gtag('event', 'generate_report', {
+          'event_category': 'engagement',
+          'event_label': ticker
+        });
 
         fetch('/api/generate', {
           method: 'POST',
@@ -358,20 +596,79 @@
             // For your current Render setup, redirect to download
             window.location.href = `/api/download/${ticker}`;
             resultSection.style.display = 'block';
+            
+            // Track successful generation
+            gtag('event', 'report_generated', {
+              'event_category': 'conversion',
+              'event_label': ticker
+            });
           } else {
             alert('Error: ' + (data.error || 'Failed to generate report'));
+            
+            // Track error
+            gtag('event', 'generation_error', {
+              'event_category': 'error',
+              'event_label': data.error || 'Unknown error'
+            });
           }
         })
         .catch(err => {
           loadingSection.style.display = 'none';
           alert('Error: ' + err.message);
+          
+          // Track network error
+          gtag('event', 'network_error', {
+            'event_category': 'error',
+            'event_label': err.message
+          });
+        })
+        .finally(() => {
+          // Re-enable form
+          submitBtn.disabled = false;
+          tickerInput.disabled = false;
         });
       });
 
       newSearchBtn.addEventListener('click', function() {
         resultSection.style.display = 'none';
-        document.getElementById('ticker').value = '';
+        tickerInput.value = '';
+        tickerInput.focus();
+        
+        // Track new search
+        gtag('event', 'new_search', {
+          'event_category': 'engagement'
+        });
       });
+
+      // Enhanced ticker input handling
+      tickerInput.addEventListener('input', function(e) {
+        // Auto-uppercase and clean input
+        let value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        e.target.value = value;
+      });
+
+      // Keyboard shortcuts
+      document.addEventListener('keydown', function(e) {
+        // Escape to clear and focus input
+        if (e.key === 'Escape') {
+          if (resultSection.style.display !== 'none') {
+            newSearchBtn.click();
+          } else {
+            tickerInput.value = '';
+            tickerInput.focus();
+          }
+        }
+      });
+    });
+
+    // Track app launch from home screen
+    window.addEventListener('DOMContentLoaded', () => {
+      if (window.matchMedia('(display-mode: standalone)').matches) {
+        gtag('event', 'pwa_launch', {
+          'event_category': 'engagement',
+          'event_label': 'Launched from home screen'
+        });
+      }
     });
   </script>
   <footer class="text-center text-muted mt-5 py-4" style="font-size: 0.9rem;">
